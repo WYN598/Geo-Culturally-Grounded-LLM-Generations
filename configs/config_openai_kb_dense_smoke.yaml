@@ -1,22 +1,22 @@
-experiment:
+﻿experiment:
   kb_path: data/sample_kb.jsonl
-  eval_path: data/benchmark_eval_large_balanced.jsonl
-  output_dir: outputs/tmp
+  eval_path: data/sample_eval.jsonl
+  output_dir: outputs/tmp_kb_dense
 
 llm:
   provider: openai
   model: gpt-4o-mini
   temperature: 0.0
-  max_tokens: 300
+  max_tokens: 200
 
 kb_grounding:
-  backend: tfidf
+  backend: dense
   retrieve_top_n: 5
-  keep_top_k: 3
+  keep_top_k: 2
   selection_mode: selective
-  dense_index_dir: ""
+  dense_index_dir: data/kb_dense_index_sample
   embedding_model: text-embedding-3-small
-  embedding_batch_size: 64
+  embedding_batch_size: 16
   embedding_dimensions: 0
   use_faiss: false
   dense_auto_save: true
@@ -47,11 +47,3 @@ search_grounding:
   ignored_domains:
     - facebook.com
     - fb.com
-    - x.com
-    - twitter.com
-    - linkedin.com
-    - youtube.com
-    - bsky.app
-    - bluesky.app
-    - vimeo.com
-    - instagram.com

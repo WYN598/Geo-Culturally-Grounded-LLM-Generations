@@ -6,8 +6,8 @@ import yaml
 
 from .eval import mcq_accuracy
 from .llm_client import LLMClient
-from .pipeline import KBPipeline, SearchPipeline, VanillaPipeline, dump_jsonl, load_jsonl, load_search_cache
-from .retrieval import TfidfKBIndex
+from .pipeline import KBPipeline, SearchPipeline, VanillaPipeline, dump_jsonl, load_jsonl, load_kb_cache, load_search_cache
+from .retrieval import make_kb_index
 from .search_grounding import WebSearcher
 
 
@@ -25,7 +25,7 @@ def run(mode: str, config_path: str) -> None:
     ensure_dir(exp["output_dir"])
 
     llm = LLMClient(
-        provider=llm_cfg.get("provider", "mock"),
+        provider=llm_cfg.get("provider", "openai"),
         model=llm_cfg.get("model", "gpt-4o-mini"),
         temperature=float(llm_cfg.get("temperature", 0.2)),
         max_tokens=int(llm_cfg.get("max_tokens", 300)),
@@ -45,17 +45,27 @@ def run(mode: str, config_path: str) -> None:
         metrics["vanilla_acc"] = mcq_accuracy(preds)
 
     if mode in ["kb", "all"]:
-        kb = TfidfKBIndex.from_jsonl(exp["kb_path"])
+        kcfg = cfg["kb_grounding"]
+        kb = make_kb_index(exp["kb_path"], kcfg)
+        kb_cache_by_id = {}
+        kb_cache_path = str(kcfg.get("cache_path", "") or "").strip()
+        if kb_cache_path and os.path.exists(kb_cache_path):
+            kb_cache_by_id = load_kb_cache(kb_cache_path)
+
         pipe = KBPipeline(
             llm=llm,
             kb_index=kb,
-            retrieve_top_n=int(cfg["kb_grounding"].get("retrieve_top_n", 5)),
-            keep_top_k=int(cfg["kb_grounding"].get("keep_top_k", 3)),
+            retrieve_top_n=int(kcfg.get("retrieve_top_n", 5)),
+            keep_top_k=int(kcfg.get("keep_top_k", 3)),
+            selection_mode=str(kcfg.get("selection_mode", "selective")),
+            cache_by_id=kb_cache_by_id,
+            use_cache_only=bool(kcfg.get("use_cache_only", False)),
+            include_candidate_details=bool(kcfg.get("include_candidate_details", False)),
         )
         preds = []
         for item in eval_rows:
-            pred, evidence = pipe.predict(item)
-            preds.append({**item, "pred": pred, "evidence": evidence})
+            pred, evidence, trace = pipe.predict(item)
+            preds.append({**item, "pred": pred, "evidence": evidence, "kb_trace": trace})
         out = os.path.join(exp["output_dir"], "kb_predictions.jsonl")
         dump_jsonl(out, preds)
         metrics["kb_acc"] = mcq_accuracy(preds)

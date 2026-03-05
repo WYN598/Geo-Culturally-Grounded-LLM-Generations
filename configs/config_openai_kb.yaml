@@ -1,7 +1,7 @@
 experiment:
-  kb_path: data/sample_kb.jsonl
+  kb_path: data/kb_full.jsonl
   eval_path: data/benchmark_eval_large_balanced.jsonl
-  output_dir: outputs/tmp
+  output_dir: outputs/tmp_kb
 
 llm:
   provider: openai
@@ -10,11 +10,11 @@ llm:
   max_tokens: 300
 
 kb_grounding:
-  backend: tfidf
-  retrieve_top_n: 5
+  backend: dense                 # tfidf | dense
+  retrieve_top_n: 10
   keep_top_k: 3
   selection_mode: selective
-  dense_index_dir: ""
+  dense_index_dir: data/kb_dense_index
   embedding_model: text-embedding-3-small
   embedding_batch_size: 64
   embedding_dimensions: 0

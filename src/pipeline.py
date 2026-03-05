@@ -4,7 +4,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from .llm_client import LLMClient, normalize_mcq_answer
-from .retrieval import KBDoc, TfidfKBIndex
+from .retrieval import KBIndex, KBDoc
 from .search_grounding import EvidenceChunk, WebSearcher
 
 
@@ -72,6 +72,16 @@ def load_search_cache(path: str) -> Dict[str, Dict[str, Any]]:
     return out
 
 
+def load_kb_cache(path: str) -> Dict[str, Dict[str, Any]]:
+    rows = load_jsonl(path)
+    out: Dict[str, Dict[str, Any]] = {}
+    for r in rows:
+        rid = str(r.get("id", "")).strip()
+        if rid:
+            out[rid] = r
+    return out
+
+
 def format_mcq_prompt(question: str, choices: List[str]) -> str:
     return f"{question}\n" + "\n".join(choices) + "\nReturn only one letter: A/B/C/D..."
 
@@ -120,6 +130,25 @@ def _manual_verbalize(raw: str, choices: List[str]) -> str:
     return "A"
 
 
+def _kbdoc_to_dict(doc: KBDoc, score: float = 0.0) -> Dict[str, Any]:
+    return {
+        "id": doc.id,
+        "source": doc.source,
+        "country": doc.country,
+        "text": doc.text,
+        "score": round(float(score), 6),
+    }
+
+
+def _dict_to_kbdoc(obj: Dict[str, Any]) -> KBDoc:
+    return KBDoc(
+        id=str(obj.get("id", "")),
+        source=str(obj.get("source", "")),
+        country=str(obj.get("country", "")),
+        text=str(obj.get("text", "")),
+    )
+
+
 def _chunk_to_dict(chunk: EvidenceChunk) -> Dict[str, Any]:
     return {
         "query": chunk.query,
@@ -153,28 +182,120 @@ class VanillaPipeline:
 
 
 class KBPipeline:
-    def __init__(self, llm: LLMClient, kb_index: TfidfKBIndex, retrieve_top_n: int = 5, keep_top_k: int = 3):
+    def __init__(
+        self,
+        llm: LLMClient,
+        kb_index: KBIndex,
+        retrieve_top_n: int = 5,
+        keep_top_k: int = 3,
+        selection_mode: str = "selective",
+        cache_by_id: Optional[Dict[str, Dict[str, Any]]] = None,
+        use_cache_only: bool = False,
+        include_candidate_details: bool = False,
+    ):
         self.llm = llm
         self.kb_index = kb_index
         self.retrieve_top_n = retrieve_top_n
         self.keep_top_k = keep_top_k
+        self.selection_mode = selection_mode
+        self.cache_by_id = cache_by_id or {}
+        self.use_cache_only = use_cache_only
+        self.include_candidate_details = include_candidate_details
+
+        if self.selection_mode not in {"selective", "non_selective"}:
+            raise ValueError("selection_mode must be 'selective' or 'non_selective'")
 
     def rewrite_query(self, question: str) -> str:
+        if self.llm.provider != "openai":
+            return question
         prompt = f"Rewrite this question into a concise web/KB search query:\n{question}"
         q = self.llm.generate("You rewrite queries.", prompt).strip()
         return q if len(q) > 2 else question
 
-    def relevance_filter(self, question: str, docs: List[KBDoc]) -> List[str]:
-        texts = [d.text for d in docs]
-        return select_topk_by_similarity(question, texts, self.keep_top_k)
+    def _select_docs(self, question: str, docs: List[KBDoc]) -> List[Tuple[KBDoc, float]]:
+        if not docs:
+            return []
+        if self.selection_mode == "non_selective":
+            return [(d, 0.0) for d in docs[: self.keep_top_k]]
 
-    def predict(self, item: Dict) -> Tuple[str, List[str]]:
-        q = self.rewrite_query(item["question"])
-        retrieved = self.kb_index.search(q, top_n=self.retrieve_top_n)
-        evidence = self.relevance_filter(item["question"], retrieved)
+        texts = [d.text for d in docs]
+        idf = _idf_for_texts([question] + texts)
+        qv = _tfidf(question, idf)
+        scored: List[Tuple[KBDoc, float]] = []
+        for d in docs:
+            s = _cosine(qv, _tfidf(d.text, idf))
+            scored.append((d, s))
+        scored.sort(key=lambda x: x[1], reverse=True)
+        return scored[: self.keep_top_k]
+
+    def _retrieve_live(self, item: Dict[str, Any]) -> Tuple[List[KBDoc], Dict[str, Any]]:
+        question = item["question"]
+        query = self.rewrite_query(question)
+        retrieved = self.kb_index.search(query, top_n=self.retrieve_top_n)
+        selected_scored = self._select_docs(question, retrieved)
+        selected = [d for d, _ in selected_scored]
+
+        trace: Dict[str, Any] = {
+            "query_source": "live",
+            "selection_mode": self.selection_mode,
+            "query": query,
+            "retrieved_docs": len(retrieved),
+            "selected_evidence": [_kbdoc_to_dict(d, s) for d, s in selected_scored],
+        }
+        if self.include_candidate_details:
+            trace["candidate_evidence"] = [_kbdoc_to_dict(d, 0.0) for d in retrieved]
+        return selected, trace
+
+    def _retrieve_from_cache(self, item: Dict[str, Any], cached: Dict[str, Any]) -> Tuple[List[KBDoc], Dict[str, Any]]:
+        question = item["question"]
+        candidate_dicts = cached.get("candidate_evidence", [])
+        selected_dicts = cached.get("selected_evidence", [])
+
+        candidates = [_dict_to_kbdoc(x) for x in candidate_dicts if isinstance(x, dict)]
+        if candidates:
+            selected_scored = self._select_docs(question, candidates)
+            selected = [d for d, _ in selected_scored]
+            selected_dicts = [_kbdoc_to_dict(d, s) for d, s in selected_scored]
+            retrieved_docs = len(candidates)
+        else:
+            selected = [_dict_to_kbdoc(x) for x in selected_dicts if isinstance(x, dict)]
+            retrieved_docs = int(cached.get("retrieved_docs", 0) or 0)
+
+        trace = {
+            "query_source": "cache",
+            "cache_hit": True,
+            "selection_mode": self.selection_mode,
+            "query": cached.get("query", question),
+            "retrieved_docs": retrieved_docs,
+            "selected_evidence": selected_dicts,
+        }
+        if self.include_candidate_details and candidates:
+            trace["candidate_evidence"] = [_kbdoc_to_dict(c, 0.0) for c in candidates]
+        return selected, trace
+
+    def prepare_evidence(self, item: Dict[str, Any]) -> Tuple[List[KBDoc], Dict[str, Any]]:
+        item_id = str(item.get("id", "")).strip()
+        if item_id and item_id in self.cache_by_id:
+            return self._retrieve_from_cache(item, self.cache_by_id[item_id])
+
+        if self.use_cache_only:
+            return [], {
+                "query_source": "cache",
+                "cache_hit": False,
+                "selection_mode": self.selection_mode,
+                "query": item["question"],
+                "retrieved_docs": 0,
+                "selected_evidence": [],
+            }
+
+        return self._retrieve_live(item)
+
+    def predict(self, item: Dict) -> Tuple[str, List[str], Dict]:
+        selected, trace = self.prepare_evidence(item)
+        evidence = [d.text for d in selected]
         aug = build_augmented_prompt(item["question"], item["choices"], evidence)
         raw = self.llm.generate("You are a culturally-aware assistant.", aug)
-        return _manual_verbalize(raw, item["choices"]), evidence
+        return _manual_verbalize(raw, item["choices"]), evidence, trace
 
 
 class SearchPipeline:

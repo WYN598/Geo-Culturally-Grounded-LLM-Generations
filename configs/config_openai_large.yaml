@@ -10,8 +10,19 @@ llm:
   max_tokens: 300
 
 kb_grounding:
+  backend: tfidf
   retrieve_top_n: 5
   keep_top_k: 3
+  selection_mode: selective
+  dense_index_dir: ""
+  embedding_model: text-embedding-3-small
+  embedding_batch_size: 64
+  embedding_dimensions: 0
+  use_faiss: false
+  dense_auto_save: true
+  cache_path: ""
+  use_cache_only: false
+  include_candidate_details: false
 
 search_grounding:
   search_top_n: 5
