@@ -32,6 +32,7 @@ search_grounding:
   keep_per_domain: 2
   llm_relevance: true
   llm_relevance_top_m: 8
+  min_evidence_score: 0.0
   selection_mode: selective   # selective | non_selective
   cache_path: ""              # optional jsonl from scripts/freeze_search_cache.py
   use_cache_only: false       # if true, never call web search when cache miss

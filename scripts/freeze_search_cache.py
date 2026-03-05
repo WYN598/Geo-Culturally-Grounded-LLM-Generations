@@ -63,6 +63,7 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         llm_relevance=bool(scfg.get("llm_relevance", True)),
         llm_relevance_top_m=int(scfg.get("llm_relevance_top_m", 8)),
         selection_mode=str(scfg.get("selection_mode", "selective")),
+        min_evidence_score=float(scfg.get("min_evidence_score", 0.0)),
         include_candidate_details=True,
     )
 

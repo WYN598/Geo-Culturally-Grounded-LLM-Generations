@@ -32,6 +32,7 @@ search_grounding:
   keep_per_domain: 2
   llm_relevance: true
   llm_relevance_top_m: 8
+  min_evidence_score: 0.0
   timeout_sec: 8
   max_page_chars: 5000
   chunk_chars: 900

@@ -1,7 +1,7 @@
-﻿experiment:
-  kb_path: data/sample_kb.jsonl
+experiment:
+  kb_path: data/kb_full.jsonl
   eval_path: data/benchmark_eval_large_balanced.jsonl
-  output_dir: outputs/tmp
+  output_dir: outputs/tmp_search_recheck
 
 llm:
   provider: openai
@@ -23,25 +23,26 @@ kb_grounding:
   cache_path: ""
   use_cache_only: false
   include_candidate_details: false
+  min_evidence_score: 0.0
 
 search_grounding:
-  search_top_n: 3
-  keep_top_k: 2
-  query_expansion_n: 1
-  max_pages: 3
-  keep_per_domain: 1
+  search_top_n: 5
+  keep_top_k: 3
+  query_expansion_n: 3
+  max_pages: 6
+  keep_per_domain: 2
   llm_relevance: false
   llm_relevance_top_m: 8
-  min_evidence_score: 0.0
+  min_evidence_score: 0.12
   selection_mode: selective
   cache_path: ""
   use_cache_only: false
   include_candidate_details: false
-  timeout_sec: 6
-  max_retries: 1
+  timeout_sec: 8
+  max_retries: 2
   min_chars: 120
-  max_page_chars: 4000
-  chunk_chars: 1000
+  max_page_chars: 4500
+  chunk_chars: 900
   overlap_chars: 120
   sleep_min_sec: 0.03
   sleep_max_sec: 0.12

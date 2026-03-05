@@ -47,6 +47,7 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         retrieve_top_n=int(kcfg.get("retrieve_top_n", 5)),
         keep_top_k=int(kcfg.get("keep_top_k", 3)),
         selection_mode=str(kcfg.get("selection_mode", "selective")),
+        min_evidence_score=float(kcfg.get("min_evidence_score", 0.0)),
         include_candidate_details=True,
     )
 
