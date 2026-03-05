@@ -1,0 +1,27 @@
+﻿experiment:
+  kb_path: data/sample_kb.jsonl
+  eval_path: data/benchmark_eval.jsonl
+  output_dir: outputs/benchmark_quick
+
+llm:
+  provider: mock   # mock | openai
+  model: gpt-4o-mini
+  temperature: 0.2
+  max_tokens: 300
+
+kb_grounding:
+  retrieve_top_n: 5
+  keep_top_k: 3
+
+search_grounding:
+  search_top_n: 5
+  keep_top_k: 3
+  query_expansion_n: 2
+  max_pages: 8
+  keep_per_domain: 2
+  llm_relevance: true
+  llm_relevance_top_m: 8
+  timeout_sec: 8
+  max_page_chars: 5000
+  chunk_chars: 900
+  overlap_chars: 120
