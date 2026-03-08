@@ -7,6 +7,7 @@ duckduckgo-search>=7.4.0
 ddgs>=9.0.0
 requests>=2.32.3
 beautifulsoup4>=4.12.3
+googlesearch-python>=1.2.5
 tqdm>=4.67.1
 datasets>=2.20.0
 matplotlib>=3.10.0

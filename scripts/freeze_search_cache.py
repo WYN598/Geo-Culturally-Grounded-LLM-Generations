@@ -41,6 +41,7 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
     )
 
     web = WebSearcher(
+        search_engine=str(scfg.get("search_engine", "ddgs")),
         timeout_sec=int(scfg.get("timeout_sec", 8)),
         max_page_chars=int(scfg.get("max_page_chars", 5000)),
         chunk_chars=int(scfg.get("chunk_chars", 900)),
@@ -50,6 +51,12 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         max_retries=int(scfg.get("max_retries", 2)),
         sleep_min_sec=float(scfg.get("sleep_min_sec", 0.05)),
         sleep_max_sec=float(scfg.get("sleep_max_sec", 0.25)),
+        google_region=str(scfg.get("google_region", "us")),
+        google_lang=str(scfg.get("google_lang", "en")),
+        google_safe=str(scfg.get("google_safe", "off")),
+        google_pause_min_sec=float(scfg.get("google_pause_min_sec", 1.0)),
+        google_pause_max_sec=float(scfg.get("google_pause_max_sec", 3.0)),
+        google_process_factor=int(scfg.get("google_process_factor", 3)),
     )
 
     pipe = SearchPipeline(
@@ -64,6 +71,9 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         llm_relevance_top_m=int(scfg.get("llm_relevance_top_m", 8)),
         selection_mode=str(scfg.get("selection_mode", "selective")),
         min_evidence_score=float(scfg.get("min_evidence_score", 0.0)),
+        require_choice_overlap=bool(scfg.get("require_choice_overlap", False)),
+        diversify_by_url=bool(scfg.get("diversify_by_url", False)),
+        domain_priors=dict(scfg.get("domain_priors", {}) or {}),
         include_candidate_details=True,
     )
 
@@ -82,12 +92,16 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
     out_dir = os.path.dirname(out_cache) or "."
     ensure_dir(out_dir)
     dump_jsonl(out_cache, frozen_rows)
+    usage_path = os.path.join(out_dir, "llm_usage_freeze_search.jsonl")
+    llm.dump_usage_log(usage_path)
 
     summary = {
         "cache_path": out_cache,
         "num_items": len(frozen_rows),
         "config": config_path,
         "provider": llm.provider,
+        "usage_path": usage_path,
+        "usage_summary": llm.usage_summary(),
     }
     print(json.dumps(summary, ensure_ascii=False, indent=2))
 

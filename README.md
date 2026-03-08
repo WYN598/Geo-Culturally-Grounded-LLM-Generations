@@ -5,7 +5,7 @@
 当前代码支持三种推理设置：
 1. `vanilla`：不使用外部证据的直接答题
 2. `kb`：本地文化知识库检索增强（TF-IDF 或 Dense embedding）
-3. `search`：网络检索增强（DuckDuckGo + 网页抓取 + chunk 选择）
+3. `search`：网络检索增强（DDGS/Google + 网页抓取 + chunk 选择）
 
 ## 项目状态（基于当前代码）
 
@@ -251,6 +251,7 @@ python scripts/validate_kb_workflow.py \
 ## 可复现性与注意事项
 
 - Search 实验若不先冻结 cache，会受到实时网络内容变化影响。
+- `search_grounding.search_engine` 支持 `ddgs`（默认）与 `google`。
 - `run_matrix.py` / `run_kb_matrix.py` 在矩阵运行时会设置 `use_cache_only=true`，保证对比公平。
 - `mock` 模式仅用于流程验证，不代表真实模型能力。
 - 选择 `use_faiss=true` 前请先自行安装 FAISS（当前 `requirements.txt` 未默认安装）。

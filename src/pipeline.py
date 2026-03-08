@@ -115,6 +115,22 @@ def _choice_map(choices: List[str]) -> Dict[str, str]:
     return mapping
 
 
+def _normalize_text(text: str) -> str:
+    text = text.lower()
+    text = re.sub(r"^[a-z]\s*[\)\.]\s*", "", text)
+    text = re.sub(r"\s+", " ", text)
+    return text.strip()
+
+
+def _choice_texts(choices: List[str]) -> List[str]:
+    out: List[str] = []
+    for c in choices:
+        c2 = _normalize_text(c)
+        if c2:
+            out.append(c2)
+    return out
+
+
 def _manual_verbalize(raw: str, choices: List[str]) -> str:
     cmap = _choice_map(choices)
     allowed = set(cmap.keys())
@@ -177,7 +193,11 @@ class VanillaPipeline:
 
     def predict(self, item: Dict) -> str:
         prompt = format_mcq_prompt(item["question"], item["choices"])
-        raw = self.llm.generate("You are a careful assistant.", prompt)
+        raw = self.llm.generate(
+            "You are a careful assistant.",
+            prompt,
+            trace_meta={"stage": "vanilla_answer", "item_id": str(item.get("id", ""))},
+        )
         return _manual_verbalize(raw, item["choices"])
 
 
@@ -211,7 +231,7 @@ class KBPipeline:
         if self.llm.provider != "openai":
             return question
         prompt = f"Rewrite this question into a concise web/KB search query:\n{question}"
-        q = self.llm.generate("You rewrite queries.", prompt).strip()
+        q = self.llm.generate("You rewrite queries.", prompt, trace_meta={"stage": "kb_query_rewrite"}).strip()
         return q if len(q) > 2 else question
 
     def _select_docs(self, question: str, docs: List[KBDoc]) -> List[Tuple[KBDoc, float]]:
@@ -311,10 +331,18 @@ class KBPipeline:
 
         if use_evidence:
             prompt = build_augmented_prompt(item["question"], item["choices"], evidence)
-            raw = self.llm.generate("You are a culturally-aware assistant.", prompt)
+            raw = self.llm.generate(
+                "You are a culturally-aware assistant.",
+                prompt,
+                trace_meta={"stage": "kb_answer_augmented", "item_id": str(item.get("id", ""))},
+            )
         else:
             prompt = format_mcq_prompt(item["question"], item["choices"])
-            raw = self.llm.generate("You are a careful assistant.", prompt)
+            raw = self.llm.generate(
+                "You are a careful assistant.",
+                prompt,
+                trace_meta={"stage": "kb_answer_fallback", "item_id": str(item.get("id", ""))},
+            )
 
         trace["used_evidence"] = use_evidence
         trace["top_selected_score"] = round(top_score, 6)
@@ -337,6 +365,9 @@ class SearchPipeline:
         llm_relevance_top_m: int = 8,
         selection_mode: str = "selective",
         min_evidence_score: float = 0.0,
+        require_choice_overlap: bool = False,
+        diversify_by_url: bool = False,
+        domain_priors: Optional[Dict[str, float]] = None,
         cache_by_id: Optional[Dict[str, Dict[str, Any]]] = None,
         use_cache_only: bool = False,
         include_candidate_details: bool = False,
@@ -352,6 +383,9 @@ class SearchPipeline:
         self.llm_relevance_top_m = llm_relevance_top_m
         self.selection_mode = selection_mode
         self.min_evidence_score = float(min_evidence_score)
+        self.require_choice_overlap = bool(require_choice_overlap)
+        self.diversify_by_url = bool(diversify_by_url)
+        self.domain_priors = {str(k).lower(): float(v) for k, v in (domain_priors or {}).items()}
         self.cache_by_id = cache_by_id or {}
         self.use_cache_only = use_cache_only
         self.include_candidate_details = include_candidate_details
@@ -359,7 +393,7 @@ class SearchPipeline:
         if self.selection_mode not in {"selective", "non_selective"}:
             raise ValueError("selection_mode must be 'selective' or 'non_selective'")
 
-    def _expand_queries(self, question: str) -> List[str]:
+    def _expand_queries(self, question: str, item_id: str = "") -> List[str]:
         if self.query_expansion_n <= 1 or self.llm.provider != "openai":
             return [question]
 
@@ -368,7 +402,11 @@ class SearchPipeline:
             "Rules: one query per line, no numbering, no quotes.\n"
             f"Question: {question}"
         )
-        raw = self.llm.generate("You are a query rewriting assistant.", prompt)
+        raw = self.llm.generate(
+            "You are a query rewriting assistant.",
+            prompt,
+            trace_meta={"stage": "search_query_rewrite", "item_id": item_id},
+        )
         lines = [re.sub(r"^[\-\d\.\)\s]+", "", x).strip() for x in raw.splitlines()]
         cleaned = [x for x in lines if len(x) > 3]
         uniq: List[str] = []
@@ -399,7 +437,7 @@ class SearchPipeline:
             )
         return sorted(scored, key=lambda x: x.score, reverse=True)
 
-    def _llm_relevance_boost(self, question: str, chunks: List[EvidenceChunk]) -> List[EvidenceChunk]:
+    def _llm_relevance_boost(self, question: str, chunks: List[EvidenceChunk], item_id: str = "") -> List[EvidenceChunk]:
         if not self.llm_relevance or not chunks:
             return chunks
 
@@ -412,7 +450,11 @@ class SearchPipeline:
                 "Return only one number.\n"
                 f"Question: {question}\nEvidence: {c.text[:1200]}"
             )
-            raw = self.llm.generate("You are a strict relevance scorer.", prompt)
+            raw = self.llm.generate(
+                "You are a strict relevance scorer.",
+                prompt,
+                trace_meta={"stage": "search_relevance_score", "item_id": item_id},
+            )
             m = re.search(r"\b([0-3])\b", raw)
             bonus = (int(m.group(1)) / 10.0) if m else 0.0
             boosted[i] = EvidenceChunk(
@@ -425,19 +467,72 @@ class SearchPipeline:
             )
         return sorted(boosted, key=lambda x: x.score, reverse=True)
 
-    def _select_chunks(self, question: str, candidates: List[EvidenceChunk]) -> List[EvidenceChunk]:
+    def _domain_prior_delta(self, domain: str) -> float:
+        d = (domain or "").lower()
+        if not d:
+            return 0.0
+        for k, v in self.domain_priors.items():
+            if d == k or d.endswith("." + k):
+                return v
+        return 0.0
+
+    def _apply_domain_priors(self, chunks: List[EvidenceChunk]) -> List[EvidenceChunk]:
+        if not self.domain_priors:
+            return chunks
+        out: List[EvidenceChunk] = []
+        for c in chunks:
+            delta = self._domain_prior_delta(c.domain)
+            out.append(
+                EvidenceChunk(
+                    query=c.query,
+                    title=c.title,
+                    url=c.url,
+                    domain=c.domain,
+                    text=c.text,
+                    score=c.score + delta,
+                )
+            )
+        return sorted(out, key=lambda x: x.score, reverse=True)
+
+    def _topk_diverse_by_url(self, chunks: List[EvidenceChunk], k: int) -> List[EvidenceChunk]:
+        if not chunks or not self.diversify_by_url:
+            return chunks[:k]
+        selected: List[EvidenceChunk] = []
+        seen_url = set()
+        for c in chunks:
+            u = (c.url or "").strip()
+            if u and u in seen_url:
+                continue
+            selected.append(c)
+            if u:
+                seen_url.add(u)
+            if len(selected) >= k:
+                break
+        if len(selected) >= k:
+            return selected[:k]
+        for c in chunks:
+            if c in selected:
+                continue
+            selected.append(c)
+            if len(selected) >= k:
+                break
+        return selected[:k]
+
+    def _select_chunks(self, question: str, candidates: List[EvidenceChunk], item_id: str = "") -> List[EvidenceChunk]:
         if not candidates:
             return []
         if self.selection_mode == "non_selective":
-            return candidates[: self.keep_top_k]
+            return self._topk_diverse_by_url(candidates, self.keep_top_k)
 
         ranked = self._lexical_rank(question, candidates)
-        ranked = self._llm_relevance_boost(question, ranked)
-        return ranked[: self.keep_top_k]
+        ranked = self._llm_relevance_boost(question, ranked, item_id=item_id)
+        ranked = self._apply_domain_priors(ranked)
+        return self._topk_diverse_by_url(ranked, self.keep_top_k)
 
     def _retrieve_live(self, item: Dict[str, Any]) -> Tuple[List[EvidenceChunk], Dict[str, Any]]:
         question = item["question"]
-        queries = self._expand_queries(question)
+        item_id = str(item.get("id", ""))
+        queries = self._expand_queries(question, item_id=item_id)
 
         all_hits = []
         for q in queries:
@@ -445,7 +540,7 @@ class SearchPipeline:
 
         dedup_hits = self.web.dedupe_hits(all_hits, keep_per_domain=self.keep_per_domain)
         candidates = self.web.build_candidate_chunks(dedup_hits, max_pages=self.max_pages)
-        selected = self._select_chunks(question, candidates)
+        selected = self._select_chunks(question, candidates, item_id=item_id)
 
         trace: Dict[str, Any] = {
             "query_source": "live",
@@ -463,12 +558,13 @@ class SearchPipeline:
 
     def _retrieve_from_cache(self, item: Dict[str, Any], cached: Dict[str, Any]) -> Tuple[List[EvidenceChunk], Dict[str, Any]]:
         question = item["question"]
+        item_id = str(item.get("id", ""))
         candidate_dicts = cached.get("candidate_evidence", [])
         selected_dicts = cached.get("selected_evidence", [])
 
         candidates = [_dict_to_chunk(x) for x in candidate_dicts if isinstance(x, dict)]
         if candidates:
-            selected = self._select_chunks(question, candidates)
+            selected = self._select_chunks(question, candidates, item_id=item_id)
             selected_dicts = [_chunk_to_dict(s) for s in selected]
         else:
             selected = [_dict_to_chunk(x) for x in selected_dicts if isinstance(x, dict)]
@@ -510,6 +606,8 @@ class SearchPipeline:
     def predict(self, item: Dict) -> Tuple[str, List[str], Dict]:
         selected, trace = self.prepare_evidence(item)
         evidence = [s.text for s in selected]
+        evidence_low = [_normalize_text(x) for x in evidence]
+        choice_texts = _choice_texts(item["choices"])
         top_score = float(selected[0].score) if selected else 0.0
 
         use_evidence = bool(evidence)
@@ -520,13 +618,32 @@ class SearchPipeline:
         elif self.selection_mode == "selective" and self.min_evidence_score > 0 and top_score < self.min_evidence_score:
             gate_reason = "low_score"
             use_evidence = False
+        elif self.require_choice_overlap:
+            overlap = False
+            for c in choice_texts:
+                if len(c) < 2:
+                    continue
+                if any(c in ev for ev in evidence_low):
+                    overlap = True
+                    break
+            if not overlap:
+                gate_reason = "no_choice_overlap"
+                use_evidence = False
 
         if use_evidence:
             prompt = build_augmented_prompt(item["question"], item["choices"], evidence)
-            raw = self.llm.generate("You are a culturally-aware assistant.", prompt)
+            raw = self.llm.generate(
+                "You are a culturally-aware assistant.",
+                prompt,
+                trace_meta={"stage": "search_answer_augmented", "item_id": str(item.get("id", ""))},
+            )
         else:
             prompt = format_mcq_prompt(item["question"], item["choices"])
-            raw = self.llm.generate("You are a careful assistant.", prompt)
+            raw = self.llm.generate(
+                "You are a careful assistant.",
+                prompt,
+                trace_meta={"stage": "search_answer_fallback", "item_id": str(item.get("id", ""))},
+            )
 
         trace["used_evidence"] = use_evidence
         trace["top_selected_score"] = round(top_score, 6)

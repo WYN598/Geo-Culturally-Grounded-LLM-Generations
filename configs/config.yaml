@@ -25,6 +25,13 @@ kb_grounding:
   include_candidate_details: false
 
 search_grounding:
+  search_engine: ddgs          # ddgs | google
+  google_region: us
+  google_lang: en
+  google_safe: off             # off | medium | high
+  google_pause_min_sec: 1.0
+  google_pause_max_sec: 3.0
+  google_process_factor: 3
   search_top_n: 5
   keep_top_k: 3
   query_expansion_n: 2

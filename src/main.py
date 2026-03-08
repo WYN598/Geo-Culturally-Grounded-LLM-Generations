@@ -35,6 +35,7 @@ def run(mode: str, config_path: str) -> None:
     metrics = {}
 
     if mode in ["vanilla", "all"]:
+        llm.reset_usage_log()
         pipe = VanillaPipeline(llm)
         preds = []
         for item in eval_rows:
@@ -43,8 +44,12 @@ def run(mode: str, config_path: str) -> None:
         out = os.path.join(exp["output_dir"], "vanilla_predictions.jsonl")
         dump_jsonl(out, preds)
         metrics["vanilla_acc"] = mcq_accuracy(preds)
+        usage_out = os.path.join(exp["output_dir"], "llm_usage_vanilla.jsonl")
+        llm.dump_usage_log(usage_out)
+        metrics["vanilla_usage"] = llm.usage_summary()
 
     if mode in ["kb", "all"]:
+        llm.reset_usage_log()
         kcfg = cfg["kb_grounding"]
         kb = make_kb_index(exp["kb_path"], kcfg)
         kb_cache_by_id = {}
@@ -70,10 +75,15 @@ def run(mode: str, config_path: str) -> None:
         out = os.path.join(exp["output_dir"], "kb_predictions.jsonl")
         dump_jsonl(out, preds)
         metrics["kb_acc"] = mcq_accuracy(preds)
+        usage_out = os.path.join(exp["output_dir"], "llm_usage_kb.jsonl")
+        llm.dump_usage_log(usage_out)
+        metrics["kb_usage"] = llm.usage_summary()
 
     if mode in ["search", "all"]:
+        llm.reset_usage_log()
         scfg = cfg["search_grounding"]
         web = WebSearcher(
+            search_engine=str(scfg.get("search_engine", "ddgs")),
             timeout_sec=int(scfg.get("timeout_sec", 8)),
             max_page_chars=int(scfg.get("max_page_chars", 5000)),
             chunk_chars=int(scfg.get("chunk_chars", 900)),
@@ -83,6 +93,12 @@ def run(mode: str, config_path: str) -> None:
             max_retries=int(scfg.get("max_retries", 2)),
             sleep_min_sec=float(scfg.get("sleep_min_sec", 0.05)),
             sleep_max_sec=float(scfg.get("sleep_max_sec", 0.25)),
+            google_region=str(scfg.get("google_region", "us")),
+            google_lang=str(scfg.get("google_lang", "en")),
+            google_safe=str(scfg.get("google_safe", "off")),
+            google_pause_min_sec=float(scfg.get("google_pause_min_sec", 1.0)),
+            google_pause_max_sec=float(scfg.get("google_pause_max_sec", 3.0)),
+            google_process_factor=int(scfg.get("google_process_factor", 3)),
         )
 
         cache_by_id = {}
@@ -102,6 +118,9 @@ def run(mode: str, config_path: str) -> None:
             llm_relevance_top_m=int(scfg.get("llm_relevance_top_m", 8)),
             selection_mode=str(scfg.get("selection_mode", "selective")),
             min_evidence_score=float(scfg.get("min_evidence_score", 0.0)),
+            require_choice_overlap=bool(scfg.get("require_choice_overlap", False)),
+            diversify_by_url=bool(scfg.get("diversify_by_url", False)),
+            domain_priors=dict(scfg.get("domain_priors", {}) or {}),
             cache_by_id=cache_by_id,
             use_cache_only=bool(scfg.get("use_cache_only", False)),
             include_candidate_details=bool(scfg.get("include_candidate_details", False)),
@@ -113,6 +132,9 @@ def run(mode: str, config_path: str) -> None:
         out = os.path.join(exp["output_dir"], "search_predictions.jsonl")
         dump_jsonl(out, preds)
         metrics["search_acc"] = mcq_accuracy(preds)
+        usage_out = os.path.join(exp["output_dir"], "llm_usage_search.jsonl")
+        llm.dump_usage_log(usage_out)
+        metrics["search_usage"] = llm.usage_summary()
 
     metrics_path = os.path.join(exp["output_dir"], "metrics.json")
     with open(metrics_path, "w", encoding="utf-8") as f:
