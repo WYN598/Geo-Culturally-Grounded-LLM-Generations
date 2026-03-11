@@ -45,18 +45,29 @@ class LLMClient:
 
     def _generate_openai(self, system_prompt: str, user_prompt: str) -> Tuple[str, Dict[str, int]]:
         from openai import OpenAI
+        from openai import BadRequestError
 
         api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAIAPI")
         client = OpenAI(api_key=api_key, base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"))
-        resp = client.chat.completions.create(
-            model=self.model,
-            temperature=self.temperature,
-            max_tokens=self.max_tokens,
-            messages=[
+        payload = {
+            "model": self.model,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+            "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-        )
+        }
+        try:
+            resp = client.chat.completions.create(**payload)
+        except BadRequestError as e:
+            msg = str(e)
+            if "max_tokens" in msg and "max_completion_tokens" in msg:
+                payload.pop("max_tokens", None)
+                payload["max_completion_tokens"] = self.max_tokens
+                resp = client.chat.completions.create(**payload)
+            else:
+                raise
         text = resp.choices[0].message.content or ""
         usage = {
             "prompt_tokens": int(getattr(resp.usage, "prompt_tokens", 0) or 0),

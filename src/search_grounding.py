@@ -2,7 +2,7 @@
 import re
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 import requests
@@ -96,6 +96,10 @@ class WebSearcher:
         google_pause_min_sec: float = 1.0,
         google_pause_max_sec: float = 3.0,
         google_process_factor: int = 3,
+        google_fallback_to_ddgs: bool = True,
+        google_fail_open_after: int = 3,
+        google_disable_sec: int = 600,
+        min_snippet_chars: int = 60,
     ):
         self.search_engine = (search_engine or "ddgs").strip().lower()
         if self.search_engine not in {"ddgs", "google"}:
@@ -116,10 +120,19 @@ class WebSearcher:
         self.google_pause_min_sec = google_pause_min_sec
         self.google_pause_max_sec = google_pause_max_sec
         self.google_process_factor = max(int(google_process_factor), 1)
+        self.google_fallback_to_ddgs = bool(google_fallback_to_ddgs)
+        self.google_fail_open_after = max(int(google_fail_open_after), 1)
+        self.google_disable_sec = max(int(google_disable_sec), 1)
+        self.min_snippet_chars = max(int(min_snippet_chars), 0)
         if self.google_pause_min_sec > self.google_pause_max_sec:
             self.google_pause_min_sec, self.google_pause_max_sec = self.google_pause_max_sec, self.google_pause_min_sec
         self.session = requests.Session()
         self._page_text_cache: Dict[str, str] = {}
+        self._last_google_error = ""
+        self._last_ddgs_error = ""
+        self._last_search_event: Dict[str, Any] = {}
+        self._google_fail_count = 0
+        self._google_disabled_until = 0.0
         self.headers = {
             "User-Agent": (
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -133,12 +146,76 @@ class WebSearcher:
 
     def search(self, query: str, top_n: int = 5) -> List[SearchHit]:
         if self.search_engine == "google":
-            return self._search_google(query, top_n=top_n)
-        return self._search_ddgs(query, top_n=top_n)
+            now = time.time()
+            if now < self._google_disabled_until:
+                ddgs_hits = self._search_ddgs(query, top_n=top_n)
+                self._last_search_event = {
+                    "query": query,
+                    "engine": "google",
+                    "results": 0,
+                    "fallback_used": True,
+                    "fallback_engine": "ddgs",
+                    "fallback_results": len(ddgs_hits),
+                    "google_error": "google_circuit_open",
+                    "ddgs_error": self._last_ddgs_error,
+                }
+                return ddgs_hits
+
+            google_hits = self._search_google(query, top_n=top_n)
+            if google_hits:
+                self._google_fail_count = 0
+                self._last_search_event = {
+                    "query": query,
+                    "engine": "google",
+                    "results": len(google_hits),
+                    "fallback_used": False,
+                }
+                return google_hits
+
+            if self._last_google_error:
+                self._google_fail_count += 1
+                if self._google_fail_count >= self.google_fail_open_after:
+                    self._google_disabled_until = time.time() + float(self.google_disable_sec)
+
+            if self.google_fallback_to_ddgs:
+                ddgs_hits = self._search_ddgs(query, top_n=top_n)
+                self._last_search_event = {
+                    "query": query,
+                    "engine": "google",
+                    "results": 0,
+                    "fallback_used": True,
+                    "fallback_engine": "ddgs",
+                    "fallback_results": len(ddgs_hits),
+                    "google_error": self._last_google_error,
+                    "ddgs_error": self._last_ddgs_error,
+                }
+                return ddgs_hits
+
+            self._last_search_event = {
+                "query": query,
+                "engine": "google",
+                "results": 0,
+                "fallback_used": False,
+                "google_error": self._last_google_error,
+            }
+            return []
+        ddgs_hits = self._search_ddgs(query, top_n=top_n)
+        self._last_search_event = {
+            "query": query,
+            "engine": "ddgs",
+            "results": len(ddgs_hits),
+            "fallback_used": False,
+            "ddgs_error": self._last_ddgs_error,
+        }
+        return ddgs_hits
+
+    def last_search_event(self) -> Dict[str, Any]:
+        return dict(self._last_search_event or {})
 
     def _search_ddgs(self, query: str, top_n: int = 5) -> List[SearchHit]:
         hits: List[SearchHit] = []
         seen = set()
+        self._last_ddgs_error = ""
 
         try:
             with DDGS() as ddgs:
@@ -166,13 +243,15 @@ class WebSearcher:
                     )
                     if len(hits) >= top_n:
                         break
-        except Exception:
+        except Exception as e:
+            self._last_ddgs_error = f"{type(e).__name__}: {e}"
             return []
 
         return hits
 
     def _search_google(self, query: str, top_n: int = 5) -> List[SearchHit]:
         if google_text_search is None:
+            self._last_google_error = "googlesearch package unavailable"
             return []
 
         hits: List[SearchHit] = []
@@ -180,6 +259,7 @@ class WebSearcher:
         urls_processed = 0
         target_results = max(top_n * 2, top_n)
         process_limit = max(top_n * self.google_process_factor, top_n)
+        self._last_google_error = ""
 
         try:
             for raw_url in google_text_search(
@@ -223,7 +303,8 @@ class WebSearcher:
                     break
                 if self.google_pause_max_sec > 0:
                     time.sleep(random.uniform(self.google_pause_min_sec, self.google_pause_max_sec))
-        except Exception:
+        except Exception as e:
+            self._last_google_error = f"{type(e).__name__}: {e}"
             return []
 
         return hits
@@ -250,9 +331,16 @@ class WebSearcher:
         candidates: List[EvidenceChunk] = []
         for h in hits[:max_pages]:
             page_text = self._fetch_page_text(h.url)
+            snippet = (h.snippet or "").strip()
+            use_snippet_only = False
             if len(page_text) < self.min_chars:
-                continue
-            merged = f"title: {h.title}\nsnippet: {h.snippet}\ncontent: {page_text}".strip()
+                if len(snippet) < self.min_snippet_chars:
+                    continue
+                use_snippet_only = True
+                page_text = snippet
+            merged = f"title: {h.title}\nsnippet: {snippet}\ncontent: {page_text}".strip()
+            if use_snippet_only:
+                merged = "[snippet_only]\n" + merged
             for chunk in split_into_chunks(merged, self.chunk_chars, self.overlap_chars):
                 candidates.append(
                     EvidenceChunk(

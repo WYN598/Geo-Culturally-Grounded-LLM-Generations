@@ -47,6 +47,7 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         chunk_chars=int(scfg.get("chunk_chars", 900)),
         overlap_chars=int(scfg.get("overlap_chars", 120)),
         min_chars=int(scfg.get("min_chars", 80)),
+        min_snippet_chars=int(scfg.get("min_snippet_chars", 60)),
         ignored_domains=list(scfg.get("ignored_domains", [])) or None,
         max_retries=int(scfg.get("max_retries", 2)),
         sleep_min_sec=float(scfg.get("sleep_min_sec", 0.05)),
@@ -57,6 +58,9 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         google_pause_min_sec=float(scfg.get("google_pause_min_sec", 1.0)),
         google_pause_max_sec=float(scfg.get("google_pause_max_sec", 3.0)),
         google_process_factor=int(scfg.get("google_process_factor", 3)),
+        google_fallback_to_ddgs=bool(scfg.get("google_fallback_to_ddgs", True)),
+        google_fail_open_after=int(scfg.get("google_fail_open_after", 3)),
+        google_disable_sec=int(scfg.get("google_disable_sec", 600)),
     )
 
     pipe = SearchPipeline(
@@ -75,29 +79,64 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         diversify_by_url=bool(scfg.get("diversify_by_url", False)),
         domain_priors=dict(scfg.get("domain_priors", {}) or {}),
         include_candidate_details=True,
+        snippet_only_penalty=float(scfg.get("snippet_only_penalty", 0.0)),
+        label_semantic_bonus=float(scfg.get("label_semantic_bonus", 0.0)),
+        label_noise_penalty=float(scfg.get("label_noise_penalty", 0.0)),
+        label_retry_min_semantic_overlap=float(scfg.get("label_retry_min_semantic_overlap", 0.06)),
+        label_min_semantic_overlap_for_use=float(scfg.get("label_min_semantic_overlap_for_use", 0.0)),
+        label_min_top_score_for_use=float(scfg.get("label_min_top_score_for_use", 0.0)),
     )
 
-    frozen_rows: List[Dict[str, Any]] = []
+    out_dir = os.path.dirname(out_cache) or "."
+    ensure_dir(out_dir)
+
+    # Resume support: if cache exists, skip ids that are already frozen.
+    existing_ids = set()
+    if os.path.exists(out_cache):
+        try:
+            for r in load_jsonl(out_cache):
+                rid = str(r.get("id", "")).strip()
+                if rid:
+                    existing_ids.add(rid)
+            if existing_ids:
+                print(f"[freeze-search] resume from existing cache: {len(existing_ids)} items", flush=True)
+        except Exception:
+            # If cache is corrupted/unreadable, start a new file.
+            existing_ids = set()
+
+    total = len(rows)
+    done = 0
     for item in rows:
-        _, trace = pipe.prepare_evidence(item)
-        frozen_rows.append(
-            {
-                "id": str(item.get("id", "")),
+        rid = str(item.get("id", "")).strip()
+        if rid and rid in existing_ids:
+            done += 1
+
+    mode = "a" if os.path.exists(out_cache) and existing_ids else "w"
+    with open(out_cache, mode, encoding="utf-8") as f:
+        for item in rows:
+            rid = str(item.get("id", "")).strip()
+            if rid and rid in existing_ids:
+                continue
+
+            _, trace = pipe.prepare_evidence(item)
+            row = {
+                "id": rid,
                 "question": item.get("question", ""),
                 "frozen_at_utc": dt.datetime.utcnow().isoformat() + "Z",
                 **trace,
             }
-        )
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            f.flush()
+            done += 1
+            if done % 10 == 0 or done == total:
+                print(f"[freeze-search] {done}/{total}", flush=True)
 
-    out_dir = os.path.dirname(out_cache) or "."
-    ensure_dir(out_dir)
-    dump_jsonl(out_cache, frozen_rows)
     usage_path = os.path.join(out_dir, "llm_usage_freeze_search.jsonl")
     llm.dump_usage_log(usage_path)
 
     summary = {
         "cache_path": out_cache,
-        "num_items": len(frozen_rows),
+        "num_items": done,
         "config": config_path,
         "provider": llm.provider,
         "usage_path": usage_path,
