@@ -1,0 +1,70 @@
+{
+  "search_prediction_integrity": {
+    "path": "outputs/qwen7b_5way_ablation/culturalbench_hard_100/runs/planning_rag/search_predictions.jsonl",
+    "total_lines": 100,
+    "nonempty_lines": 100,
+    "parsed_lines": 100,
+    "bad_lines": 0,
+    "bad_line_numbers": [],
+    "expected_n": 100,
+    "is_complete": true,
+    "missing_rows": 0
+  },
+  "search_acc": 0.67,
+  "search_eval": {
+    "n": 100,
+    "dataset_metrics": {
+      "CulturalBench-Hard": {
+        "task_family": "mcq",
+        "accuracy": 0.67,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      }
+    }
+  },
+  "search_trace_summary": {
+    "n": 100,
+    "used_evidence_n": 100,
+    "used_evidence_rate": 1.0,
+    "stage_counts": {
+      "search_answer_augmented": 100
+    },
+    "gate_reason_top": []
+  },
+  "search_runtime_status": {
+    "provider": "openai",
+    "requested_features": {
+      "llm_query_rewrite": true,
+      "hyde": false,
+      "llm_relevance": false,
+      "query_feedback_retry": false,
+      "evidence_organization": false,
+      "evidence_gate": false
+    },
+    "effective_features": {
+      "llm_query_rewrite": true,
+      "hyde": false,
+      "llm_relevance": false,
+      "query_feedback_retry": false,
+      "evidence_organization": false,
+      "evidence_gate": false
+    },
+    "rewrite_policy": "auto",
+    "runtime_warnings": []
+  },
+  "search_usage": {
+    "num_calls": 100,
+    "prompt_tokens": 36363,
+    "completion_tokens": 200,
+    "total_tokens": 36563,
+    "by_stage": {
+      "search_answer_augmented": {
+        "num_calls": 100,
+        "prompt_tokens": 36363,
+        "completion_tokens": 200,
+        "total_tokens": 36563
+      }
+    }
+  }
+}

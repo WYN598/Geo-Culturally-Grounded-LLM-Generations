@@ -1,0 +1,40 @@
+{
+  "vanilla_prediction_integrity": {
+    "path": "outputs/qwen7b_5way_ablation/normad_100/runs/vanilla/vanilla_predictions.jsonl",
+    "total_lines": 100,
+    "nonempty_lines": 100,
+    "parsed_lines": 100,
+    "bad_lines": 0,
+    "bad_line_numbers": [],
+    "expected_n": 100,
+    "is_complete": true,
+    "missing_rows": 0
+  },
+  "vanilla_acc": 0.77,
+  "vanilla_eval": {
+    "n": 100,
+    "dataset_metrics": {
+      "NormAd": {
+        "task_family": "mcq",
+        "accuracy": 0.77,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      }
+    }
+  },
+  "vanilla_usage": {
+    "num_calls": 100,
+    "prompt_tokens": 7567,
+    "completion_tokens": 200,
+    "total_tokens": 7767,
+    "by_stage": {
+      "vanilla_answer": {
+        "num_calls": 100,
+        "prompt_tokens": 7567,
+        "completion_tokens": 200,
+        "total_tokens": 7767
+      }
+    }
+  }
+}

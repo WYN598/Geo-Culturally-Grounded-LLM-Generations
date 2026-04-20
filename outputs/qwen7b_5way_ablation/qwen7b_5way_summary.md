@@ -1,0 +1,7 @@
+| Benchmark | Model | Vanilla LLM | Simple RAG | Rewrite | Rerank | Noise Filter |
+| --- | --- | --- | --- | --- | --- | --- |
+| BLEnD_100 | Qwen/Qwen2.5-7B-Instruct | 0.76 | 0.72 | 0.70 | 0.70 | 0.74 |
+| CulturalBench-Easy_100 | Qwen/Qwen2.5-7B-Instruct | 0.68 | 0.71 | 0.71 | 0.71 | 0.70 |
+| CulturalBench-Hard_100 | Qwen/Qwen2.5-7B-Instruct | 0.75 | 0.72 | 0.67 | 0.68 | 0.78 |
+| NormAd_100 | Qwen/Qwen2.5-7B-Instruct | 0.77 | 0.74 | 0.79 | 0.78 | 0.80 |
+| SeeGULL_100 | Qwen/Qwen2.5-7B-Instruct | 0.61 | 0.47 | 0.43 | 0.44 | 0.43 |
