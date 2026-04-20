@@ -1,0 +1,17 @@
+{
+  "seed": 42,
+  "per_dataset": 100,
+  "datasets": {
+    "culturalbench_easy": {
+      "input": 1226,
+      "sampled": 100,
+      "output": "data\\benchmarks\\external\\sampled\\culturalbench_easy_100.jsonl"
+    },
+    "culturalbench_hard": {
+      "input": 4907,
+      "sampled": 100,
+      "output": "data\\benchmarks\\external\\sampled\\culturalbench_hard_100.jsonl"
+    }
+  },
+  "combined_output": "data\\benchmarks\\external\\sampled\\external_mix_100x2.jsonl"
+}

@@ -1,0 +1,27 @@
+{
+  "seed": 42,
+  "per_dataset": 200,
+  "datasets": {
+    "bbq": {
+      "input": 31372,
+      "sampled": 200,
+      "output": "data\\benchmarks\\external\\sampled\\bbq_200.jsonl"
+    },
+    "socialstigmaqa": {
+      "input": 10360,
+      "sampled": 200,
+      "output": "data\\benchmarks\\external\\sampled\\socialstigmaqa_200.jsonl"
+    },
+    "truthfulqa": {
+      "input": 790,
+      "sampled": 200,
+      "output": "data\\benchmarks\\external\\sampled\\truthfulqa_200.jsonl"
+    },
+    "popqa": {
+      "input": 14267,
+      "sampled": 200,
+      "output": "data\\benchmarks\\external\\sampled\\popqa_200.jsonl"
+    }
+  },
+  "combined_output": "data\\benchmarks\\external\\sampled\\external_mix_200x4.jsonl"
+}
