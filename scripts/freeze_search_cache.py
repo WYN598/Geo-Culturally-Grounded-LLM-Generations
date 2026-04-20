@@ -13,7 +13,13 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.llm_client import LLMClient
-from src.pipeline import SearchPipeline, dump_jsonl, load_jsonl
+from src.pipeline import (
+    GeneralSearchPipeline,
+    build_search_cache_fingerprint,
+    dump_jsonl,
+    load_jsonl,
+    write_cache_meta,
+)
 from src.search_grounding import WebSearcher
 
 
@@ -29,7 +35,7 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
     llm_cfg = cfg["llm"]
     scfg = cfg["search_grounding"]
 
-    rows = load_jsonl(exp["eval_path"])
+    rows = load_jsonl(exp["eval_path"], strict=True)
     if limit > 0:
         rows = rows[:limit]
 
@@ -63,7 +69,7 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         google_disable_sec=int(scfg.get("google_disable_sec", 600)),
     )
 
-    pipe = SearchPipeline(
+    pipe = GeneralSearchPipeline(
         llm=llm,
         web=web,
         search_top_n=int(scfg.get("search_top_n", 5)),
@@ -71,30 +77,48 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         query_expansion_n=int(scfg.get("query_expansion_n", 2)),
         max_pages=int(scfg.get("max_pages", 8)),
         keep_per_domain=int(scfg.get("keep_per_domain", 2)),
-        llm_relevance=bool(scfg.get("llm_relevance", True)),
-        llm_relevance_top_m=int(scfg.get("llm_relevance_top_m", 8)),
-        selection_mode=str(scfg.get("selection_mode", "selective")),
-        min_evidence_score=float(scfg.get("min_evidence_score", 0.0)),
-        require_choice_overlap=bool(scfg.get("require_choice_overlap", False)),
-        diversify_by_url=bool(scfg.get("diversify_by_url", False)),
+        llm_query_rewrite=bool(scfg.get("llm_query_rewrite", True)),
+        rewrite_policy=str(scfg.get("rewrite_policy", "auto")),
+        llm_relevance=bool(scfg.get("llm_relevance", False)),
+        llm_relevance_top_m=int(scfg.get("llm_relevance_top_m", 6)),
+        embedding_preranker=str(scfg.get("embedding_preranker", "openai")),
+        embedding_model=str(scfg.get("embedding_model", "text-embedding-3-small")),
+        embedding_preranker_top_m=int(scfg.get("embedding_preranker_top_m", 24)),
+        embedding_preranker_weight=float(scfg.get("embedding_preranker_weight", 0.15)),
+        semantic_reranker=str(scfg.get("semantic_reranker", "none")),
+        semantic_reranker_model=str(scfg.get("semantic_reranker_model", "cross-encoder/ms-marco-MiniLM-L-12-v2")),
+        semantic_reranker_top_m=int(scfg.get("semantic_reranker_top_m", 12)),
+        semantic_reranker_weight=float(scfg.get("semantic_reranker_weight", 0.2)),
+        semantic_reranker_device=str(scfg.get("semantic_reranker_device", "cuda")),
+        semantic_reranker_batch_size=int(scfg.get("semantic_reranker_batch_size", 32)),
+        diversify_by_url=bool(scfg.get("diversify_by_url", True)),
         domain_priors=dict(scfg.get("domain_priors", {}) or {}),
+        enable_query_feedback_retry=bool(scfg.get("enable_query_feedback_retry", True)),
+        query_feedback_max_retry=int(scfg.get("query_feedback_max_retry", 1)),
+        query_retry_min_top_score=float(scfg.get("query_retry_min_top_score", 0.12)),
+        enable_evidence_organization=bool(scfg.get("enable_evidence_organization", True)),
+        enable_evidence_gate=bool(scfg.get("enable_evidence_gate", True)),
+        min_evidence_score=float(scfg.get("min_evidence_score", 0.16)),
+        summary_max_items=int(scfg.get("summary_max_items", 4)),
+        low_quality_domains=list(scfg.get("low_quality_domains", []) or []),
+        low_quality_url_keywords=list(scfg.get("low_quality_url_keywords", []) or []),
         include_candidate_details=True,
-        snippet_only_penalty=float(scfg.get("snippet_only_penalty", 0.0)),
-        label_semantic_bonus=float(scfg.get("label_semantic_bonus", 0.0)),
-        label_noise_penalty=float(scfg.get("label_noise_penalty", 0.0)),
-        label_retry_min_semantic_overlap=float(scfg.get("label_retry_min_semantic_overlap", 0.06)),
-        label_min_semantic_overlap_for_use=float(scfg.get("label_min_semantic_overlap_for_use", 0.0)),
-        label_min_top_score_for_use=float(scfg.get("label_min_top_score_for_use", 0.0)),
     )
 
     out_dir = os.path.dirname(out_cache) or "."
     ensure_dir(out_dir)
+    cache_meta = build_search_cache_fingerprint(cfg)
 
     # Resume support: if cache exists, skip ids that are already frozen.
     existing_ids = set()
+    rewrite_cache = False
     if os.path.exists(out_cache):
         try:
-            for r in load_jsonl(out_cache):
+            with open(out_cache + ".meta.json", "r", encoding="utf-8-sig") as mf:
+                existing_meta = json.load(mf)
+            if json.dumps(existing_meta, sort_keys=True, ensure_ascii=False) != json.dumps(cache_meta, sort_keys=True, ensure_ascii=False):
+                rewrite_cache = True
+            for r in load_jsonl(out_cache, strict=True):
                 rid = str(r.get("id", "")).strip()
                 if rid:
                     existing_ids.add(rid)
@@ -103,15 +127,19 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         except Exception:
             # If cache is corrupted/unreadable, start a new file.
             existing_ids = set()
+            rewrite_cache = True
+    if rewrite_cache:
+        existing_ids = set()
 
     total = len(rows)
     done = 0
-    for item in rows:
-        rid = str(item.get("id", "")).strip()
-        if rid and rid in existing_ids:
-            done += 1
+    if not rewrite_cache:
+        for item in rows:
+            rid = str(item.get("id", "")).strip()
+            if rid and rid in existing_ids:
+                done += 1
 
-    mode = "a" if os.path.exists(out_cache) and existing_ids else "w"
+    mode = "a" if os.path.exists(out_cache) and existing_ids and not rewrite_cache else "w"
     with open(out_cache, mode, encoding="utf-8") as f:
         for item in rows:
             rid = str(item.get("id", "")).strip()
@@ -133,10 +161,12 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
 
     usage_path = os.path.join(out_dir, "llm_usage_freeze_search.jsonl")
     llm.dump_usage_log(usage_path)
+    write_cache_meta(out_cache, cache_meta)
 
     summary = {
         "cache_path": out_cache,
         "num_items": done,
+        "cache_meta_path": out_cache + ".meta.json",
         "config": config_path,
         "provider": llm.provider,
         "usage_path": usage_path,

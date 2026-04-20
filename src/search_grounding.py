@@ -20,16 +20,9 @@ except Exception:  # pragma: no cover
 
 
 DEFAULT_IGNORED_DOMAINS = [
-    "facebook.com",
-    "fb.com",
-    "x.com",
-    "twitter.com",
-    "linkedin.com",
-    "youtube.com",
     "bsky.app",
     "bluesky.app",
     "vimeo.com",
-    "instagram.com",
 ]
 
 

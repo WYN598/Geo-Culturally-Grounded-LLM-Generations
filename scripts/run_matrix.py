@@ -75,6 +75,19 @@ def write_yaml(path: str, cfg: Dict) -> None:
         yaml.safe_dump(cfg, f, sort_keys=False, allow_unicode=True)
 
 
+def cache_file_has_content(path: Path) -> bool:
+    if not path.exists() or path.stat().st_size <= 0:
+        return False
+    try:
+        with open(path, "r", encoding="utf-8-sig") as f:
+            for line in f:
+                if line.strip():
+                    return True
+    except Exception:
+        return False
+    return False
+
+
 def run(args):
     with open(args.config, "r", encoding="utf-8-sig") as f:
         base_cfg = yaml.safe_load(f)
@@ -92,7 +105,7 @@ def run(args):
     )
 
     cache_path = out_root / "search_cache.jsonl"
-    if args.refresh_cache or not cache_path.exists():
+    if args.refresh_cache or not cache_file_has_content(cache_path):
         freeze_cfg = copy.deepcopy(base_cfg)
         freeze_cfg["experiment"]["eval_path"] = eval_path
         if args.provider:
@@ -119,8 +132,7 @@ def run(args):
 
     matrix = [
         {"name": "vanilla", "mode": "vanilla", "selection_mode": None},
-        {"name": "search_selective", "mode": "search", "selection_mode": "selective"},
-        {"name": "search_non_selective", "mode": "search", "selection_mode": "non_selective"},
+        {"name": "search_general", "mode": "search", "selection_mode": None},
     ]
 
     summary = {"runs": {}, "cache_path": str(cache_path), "eval_path": str(eval_path)}
@@ -141,7 +153,8 @@ def run(args):
             scfg = cfg["search_grounding"]
             scfg["cache_path"] = str(cache_path)
             scfg["use_cache_only"] = True
-            scfg["selection_mode"] = run_def["selection_mode"]
+            if run_def["selection_mode"] is not None:
+                scfg["selection_mode"] = run_def["selection_mode"]
             scfg["include_candidate_details"] = False
 
         cfg_path = out_root / f"config_{run_def['name']}.yaml"

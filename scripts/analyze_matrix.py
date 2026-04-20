@@ -142,47 +142,44 @@ def run(matrix_root: str, out_dir: str) -> None:
 
     v_path = os.path.join(matrix_root, "vanilla", "vanilla_predictions.jsonl")
     ss_path = os.path.join(matrix_root, "search_selective", "search_predictions.jsonl")
+    sg_path = os.path.join(matrix_root, "search_general", "search_predictions.jsonl")
     sn_path = os.path.join(matrix_root, "search_non_selective", "search_predictions.jsonl")
 
     vanilla = load_jsonl(v_path)
-    search_sel = load_jsonl(ss_path)
-    search_non = load_jsonl(sn_path)
+    systems: Dict[str, List[Dict]] = {"vanilla": vanilla}
 
-    overall = {
-        "vanilla": acc(vanilla),
-        "search_selective": acc(search_sel),
-        "search_non_selective": acc(search_non),
-    }
+    if os.path.exists(ss_path):
+        systems["search_selective"] = load_jsonl(ss_path)
+    elif os.path.exists(sg_path):
+        systems["search_general"] = load_jsonl(sg_path)
 
-    ds_map = {
-        "vanilla": by_dataset_acc(vanilla),
-        "search_selective": by_dataset_acc(search_sel),
-        "search_non_selective": by_dataset_acc(search_non),
-    }
+    if os.path.exists(sn_path):
+        systems["search_non_selective"] = load_jsonl(sn_path)
 
-    wtl_sel = win_tie_loss(vanilla, search_sel)
-    wtl_non = win_tie_loss(vanilla, search_non)
+    overall = {name: acc(rows) for name, rows in systems.items()}
+    ds_map = {name: by_dataset_acc(rows) for name, rows in systems.items()}
 
-    stereo = {
-        "vanilla": stereotype_rate(vanilla),
-        "search_selective": stereotype_rate(search_sel),
-        "search_non_selective": stereotype_rate(search_non),
-    }
+    wtl_map = {}
+    for name, rows in systems.items():
+        if name == "vanilla":
+            continue
+        wtl_map[f"{name}_vs_vanilla"] = win_tie_loss(vanilla, rows)
+
+    stereo = {name: stereotype_rate(rows) for name, rows in systems.items()}
 
     plot_overall(overall, os.path.join(out_dir, "overall_accuracy_matrix.png"))
     plot_dataset_grouped(ds_map, os.path.join(out_dir, "dataset_accuracy_matrix.png"))
-    plot_wtl(wtl_sel, os.path.join(out_dir, "wtl_search_selective_vs_vanilla.png"), "Search Selective vs Vanilla")
-    plot_wtl(wtl_non, os.path.join(out_dir, "wtl_search_non_selective_vs_vanilla.png"), "Search Non-Selective vs Vanilla")
+    for key, wtl in wtl_map.items():
+        title = key.replace("_", " ").replace("vs", "vs").title()
+        plot_wtl(wtl, os.path.join(out_dir, f"wtl_{key}.png"), title)
     plot_stereotype(stereo, os.path.join(out_dir, "seegull_stereotype_rate.png"))
 
     summary = {
         "matrix_root": matrix_root,
+        "systems": list(systems.keys()),
         "overall_accuracy": overall,
         "dataset_accuracy": ds_map,
-        "win_tie_loss": {
-            "search_selective_vs_vanilla": wtl_sel,
-            "search_non_selective_vs_vanilla": wtl_non,
-        },
+        "win_tie_loss": wtl_map,
         "seegull_stereotype_rate": stereo,
         "note": "SeeGULL stereotype rate is only meaningful when option A explicitly denotes stereotype.",
     }

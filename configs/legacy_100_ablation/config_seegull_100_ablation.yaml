@@ -1,12 +1,12 @@
-﻿experiment:
-  kb_path: data/sample_kb.jsonl
-  eval_path: data/sample_eval.jsonl
-  output_dir: outputs
+experiment:
+  kb_path: data/kb_full.jsonl
+  eval_path: data/legacy_100/seegull_100.jsonl
+  output_dir: outputs/qwen7b_legacy_100/seegull_100/search_general
 
 llm:
-  provider: mock   # mock | openai
-  model: gpt-4o
-  temperature: 0.2
+  provider: openai
+  model: gpt-5.2
+  temperature: 0.0
   max_tokens: 300
 
 kb_grounding:
@@ -23,21 +23,16 @@ kb_grounding:
   cache_path: ""
   use_cache_only: false
   include_candidate_details: false
+  min_evidence_score: 0.0
 
 search_grounding:
-  search_pipeline_type: general   # general | bias_aware
-  search_engine: ddgs          # ddgs | google
-  google_region: us
-  google_lang: en
-  google_safe: off             # off | medium | high
-  google_pause_min_sec: 1.0
-  google_pause_max_sec: 3.0
-  google_process_factor: 3
+  search_pipeline_type: general
+  search_engine: ddgs
   search_top_n: 10
   keep_top_k: 3
   query_expansion_n: 2
   llm_query_rewrite: true
-  rewrite_policy: auto        # auto | none | generic | norm_story | bias_safe
+  rewrite_policy: auto
   enable_hyde: false
   hyde_query_n: 1
   risk_medium_threshold: 1.5
@@ -66,24 +61,26 @@ search_grounding:
   semantic_reranker_weight: 0.2
   semantic_reranker_device: cuda
   semantic_reranker_batch_size: 32
+  diversify_by_url: true
   enable_evidence_organization: true
   enable_evidence_gate: true
-  summary_max_items: 4
   min_evidence_score: 0.16
-  cache_path: ""              # optional jsonl from scripts/freeze_search_cache.py
-  use_cache_only: false       # if true, never call web search when cache miss
-  include_candidate_details: false
+  summary_max_items: 4
+  domain_priors: {}
+  cache_path: outputs/qwen7b_legacy_100/seegull_100/search_cache_general.jsonl
+  use_cache_only: false
+  include_candidate_details: true
   timeout_sec: 8
   search_result_pool_factor: 4
   max_retries: 2
-  min_chars: 80
+  min_chars: 120
   min_snippet_chars: 60
   max_page_chars: 6500
   chunk_chars: 820
   overlap_chars: 160
   sentence_overlap_sentences: 1
-  sleep_min_sec: 0.05
-  sleep_max_sec: 0.25
+  sleep_min_sec: 0.03
+  sleep_max_sec: 0.12
   ignored_domains:
     - facebook.com
     - fb.com

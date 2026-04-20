@@ -1,0 +1,55 @@
+#!/bin/bash
+#BSUB -q p1
+#BSUB -J qwen7b_normad100_5way
+#BSUB -n 4
+#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -R "rusage[mem=32GB]"
+#BSUB -R "span[hosts=1]"
+#BSUB -W 04:00
+#BSUB -oo /dtu/p1/yanwen/bias-rag/project/logs/qwen7b_normad100_5way.out
+#BSUB -eo /dtu/p1/yanwen/bias-rag/project/logs/qwen7b_normad100_5way.err
+
+set -euo pipefail
+
+cd /dtu/p1/yanwen/bias-rag
+module purge
+module load python3/3.11.9
+source .venv/bin/activate
+export PYTHONPATH="$VIRTUAL_ENV/lib/python3.11/site-packages:${PYTHONPATH}"
+
+export HF_HOME=/dtu/p1/yanwen/bias-rag/hf-cache
+export HUGGINGFACE_HUB_CACHE=/dtu/p1/yanwen/bias-rag/hf-cache/hub
+export VLLM_CACHE_ROOT=/dtu/p1/yanwen/bias-rag/vllm-cache
+export TORCHINDUCTOR_CACHE_DIR=/dtu/p1/yanwen/bias-rag/torchinductor-cache
+mkdir -p "$HF_HOME" "$HUGGINGFACE_HUB_CACHE" "$VLLM_CACHE_ROOT" "$TORCHINDUCTOR_CACHE_DIR"
+
+if [ -z "${OPENAI_EMBEDDING_BASE_URL:-}" ] || [ -z "${OPENAI_EMBEDDING_API_KEY:-}" ]; then
+  echo "OPENAI_EMBEDDING_BASE_URL and OPENAI_EMBEDDING_API_KEY must be set." >&2
+  exit 1
+fi
+
+cd /dtu/p1/yanwen/bias-rag/project
+mkdir -p logs
+
+vllm serve Qwen/Qwen2.5-7B-Instruct --api-key local-key > logs/vllm_qwen7b_normad100_5way.log 2>&1 &
+VLLM_PID=$!
+trap 'kill $VLLM_PID || true' EXIT
+
+for i in $(seq 1 180); do
+  if curl -s http://127.0.0.1:8000/v1/models -H "Authorization: Bearer local-key" > /dev/null; then
+    break
+  fi
+  sleep 5
+done
+
+export OPENAI_BASE_URL=http://127.0.0.1:8000/v1
+export OPENAI_API_KEY=local-key
+
+python scripts/run_general_ablation.py \
+  --config configs/legacy_100_ablation/config_normad_100_ablation.yaml \
+  --out-root outputs/qwen7b_5way_ablation \
+  --tag normad_100 \
+  --provider openai \
+  --model Qwen/Qwen2.5-7B-Instruct \
+  --temperature 0.0 \
+  --no-full-general
