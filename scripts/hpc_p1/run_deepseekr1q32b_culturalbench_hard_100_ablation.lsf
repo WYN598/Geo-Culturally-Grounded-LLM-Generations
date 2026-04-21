@@ -1,0 +1,23 @@
+#!/bin/bash
+#BSUB -q p1
+#BSUB -J deepseekr1q32b_cbhard100_5way
+#BSUB -n 8
+#BSUB -gpu "num=2:mode=exclusive_process"
+#BSUB -R "rusage[mem=64GB]"
+#BSUB -R "span[hosts=1]"
+#BSUB -W 05:00
+#BSUB -oo /dtu/p1/yanwen/bias-rag/project/logs/deepseekr1q32b_cbhard100_5way.out
+#BSUB -eo /dtu/p1/yanwen/bias-rag/project/logs/deepseekr1q32b_cbhard100_5way.err
+
+set -euo pipefail
+
+export MODEL_ID="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
+export BENCH_TAG="culturalbench_hard_100"
+export CONFIG_PATH="configs/legacy_100_ablation/config_culturalbench_hard_100_ablation.yaml"
+export OUT_ROOT="outputs/deepseek_r1q32b_5way_ablation"
+export LOG_PREFIX="vllm_deepseekr1q32b_cbhard100_5way"
+export TP_SIZE="2"
+export GPU_MEMORY_UTILIZATION="0.90"
+export MAX_MODEL_LEN="8192"
+
+bash scripts/hpc_p1/run_open_model_5way_ablation.sh

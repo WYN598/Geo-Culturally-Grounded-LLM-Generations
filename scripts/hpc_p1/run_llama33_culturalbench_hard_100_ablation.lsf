@@ -1,0 +1,23 @@
+#!/bin/bash
+#BSUB -q p1
+#BSUB -J llama33_cbhard100_5way
+#BSUB -n 16
+#BSUB -gpu "num=4:mode=exclusive_process"
+#BSUB -R "rusage[mem=128GB]"
+#BSUB -R "span[hosts=1]"
+#BSUB -W 06:00
+#BSUB -oo /dtu/p1/yanwen/bias-rag/project/logs/llama33_cbhard100_5way.out
+#BSUB -eo /dtu/p1/yanwen/bias-rag/project/logs/llama33_cbhard100_5way.err
+
+set -euo pipefail
+
+export MODEL_ID="meta-llama/Llama-3.3-70B-Instruct"
+export BENCH_TAG="culturalbench_hard_100"
+export CONFIG_PATH="configs/legacy_100_ablation/config_culturalbench_hard_100_ablation.yaml"
+export OUT_ROOT="outputs/llama33_70b_5way_ablation"
+export LOG_PREFIX="vllm_llama33_cbhard100_5way"
+export TP_SIZE="4"
+export GPU_MEMORY_UTILIZATION="0.90"
+export MAX_MODEL_LEN="8192"
+
+bash scripts/hpc_p1/run_open_model_5way_ablation.sh
