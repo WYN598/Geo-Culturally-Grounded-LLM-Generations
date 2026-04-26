@@ -103,6 +103,7 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         low_quality_domains=list(scfg.get("low_quality_domains", []) or []),
         low_quality_url_keywords=list(scfg.get("low_quality_url_keywords", []) or []),
         include_candidate_details=True,
+        strict_feature_checks=bool(scfg.get("strict_feature_checks", False)),
     )
 
     out_dir = os.path.dirname(out_cache) or "."

@@ -36,18 +36,29 @@ def balanced_sample(rows: List[Dict[str, Any]], limit: int, label_key: str, seed
     labels = sorted(by_label.keys())
     for label in labels:
         rng.shuffle(by_label[label])
-    per_label = max(1, limit // max(1, len(labels)))
+
+    # Round-robin allocation keeps the sample as balanced as possible even when
+    # the requested limit is smaller than the number of strata.
     selected: List[Dict[str, Any]] = []
-    for label in labels:
-        selected.extend(by_label[label][:per_label])
-    if len(selected) < limit:
-        leftovers: List[Dict[str, Any]] = []
-        for label in labels:
-            leftovers.extend(by_label[label][per_label:])
-        rng.shuffle(leftovers)
-        selected.extend(leftovers[: max(0, limit - len(selected))])
+    label_order = list(labels)
+    rng.shuffle(label_order)
+    offsets = {label: 0 for label in labels}
+    while len(selected) < limit:
+        added_this_round = False
+        for label in label_order:
+            idx = offsets[label]
+            bucket = by_label[label]
+            if idx >= len(bucket):
+                continue
+            selected.append(bucket[idx])
+            offsets[label] = idx + 1
+            added_this_round = True
+            if len(selected) >= limit:
+                break
+        if not added_this_round:
+            break
     rng.shuffle(selected)
-    return selected[:limit]
+    return selected
 
 
 def random_sample(rows: List[Dict[str, Any]], limit: int, seed: int) -> List[Dict[str, Any]]:
@@ -69,9 +80,13 @@ def run(args: argparse.Namespace) -> None:
         "socialstigmaqa": {"filename": "socialstigmaqa.jsonl", "label_key": "biased_answer"},
         "truthfulqa": {"filename": "truthfulqa.jsonl", "label_key": "answer"},
         "popqa": {"filename": "popqa.jsonl", "label_key": None},
+        "cbbq": {"filename": "cbbq.jsonl", "label_key": "sampling_bucket"},
+        "borderlines": {"filename": "borderlines.jsonl", "label_key": "sampling_bucket"},
+        "msqad": {"filename": "msqad.jsonl", "label_key": "sampling_bucket"},
         "culturalbench_easy": {"filename": "culturalbench_easy.jsonl", "label_key": "answer"},
         "culturalbench_hard": {"filename": "culturalbench_hard.jsonl", "label_key": "answer"},
         "espanstereo": {"filename": "espanstereo.jsonl", "label_key": "answer"},
+        "honest": {"filename": "honest.jsonl", "label_key": "sampling_bucket"},
     }
     selected_specs = {name: specs[name] for name in args.datasets}
 
@@ -117,9 +132,13 @@ if __name__ == "__main__":
             "socialstigmaqa",
             "truthfulqa",
             "popqa",
+            "cbbq",
+            "borderlines",
+            "msqad",
             "culturalbench_easy",
             "culturalbench_hard",
             "espanstereo",
+            "honest",
         ],
     )
     args = parser.parse_args()

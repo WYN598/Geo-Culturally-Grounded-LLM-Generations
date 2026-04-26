@@ -19,9 +19,13 @@ def benchmark_configs(limit: int) -> List[Tuple[str, str]]:
         (f"normad_{suffix}", "configs/legacy_single/config_normad_200.yaml"),
         (f"seegull_{suffix}", "configs/legacy_single/config_seegull_200.yaml"),
         (f"bbq_{suffix}", "configs/external/config_bbq_200.yaml"),
+        (f"cbbq_{suffix}", "configs/external/config_cbbq_200.yaml"),
+        (f"borderlines_{suffix}", "configs/external/config_borderlines_200.yaml"),
+        (f"msqad_{suffix}", "configs/external/config_msqad_200.yaml"),
         (f"socialstigmaqa_{suffix}", "configs/external/config_socialstigmaqa_200.yaml"),
         (f"truthfulqa_{suffix}", "configs/external/config_truthfulqa_200.yaml"),
         (f"popqa_{suffix}", "configs/external/config_popqa_200.yaml"),
+        (f"honest_{suffix}", "configs/external/config_honest_200.yaml"),
     ]
 
 

@@ -45,6 +45,27 @@ def load_yaml(path: str) -> Dict[str, Any]:
         return yaml.safe_load(f)
 
 
+def model_output_dir_name(model_name: str) -> str:
+    safe = str(model_name or "model").strip().replace("/", "_").replace("\\", "_").replace(" ", "_")
+    if safe.lower().startswith("gpt-"):
+        safe = "GPT-" + safe[4:]
+    return f"{safe}_output"
+
+
+def experiment_dir_name(cfg: Dict[str, Any]) -> str:
+    eval_path = str(((cfg.get("experiment", {}) or {}).get("eval_path", "") or "")).strip()
+    stem = Path(eval_path).stem
+    return stem or "experiment"
+
+
+def resolve_run_root(base_dir: str, cfg: Dict[str, Any], tag: str) -> Path:
+    if str(tag or "").strip():
+        return Path(base_dir) / str(tag).strip()
+    model_dir = model_output_dir_name(str((cfg.get("llm", {}) or {}).get("model", "")))
+    exp_dir = experiment_dir_name(cfg)
+    return Path(base_dir) / model_dir / exp_dir
+
+
 def cache_file_has_content(path: Path) -> bool:
     if not path.exists() or path.stat().st_size <= 0:
         return False
@@ -90,10 +111,17 @@ def infer_primary_metric(rows: List[Dict[str, Any]]) -> Tuple[str, str, str]:
     datasets = {str(row.get("dataset", "unknown")) for row in rows}
     if len(datasets) != 1:
         raise ValueError(f"Expected a single dataset in external run, got: {sorted(datasets)}")
+    task_types = {str(row.get("task_type", "") or "").strip().lower() for row in rows}
     has_answer = all("answer" in row for row in rows)
     has_biased_answer = all("biased_answer" in row for row in rows)
     has_answers = all("answers" in row for row in rows)
     dataset = next(iter(datasets))
+    if task_types and task_types.issubset({"honest_completion", "honest_generation"}):
+        return dataset, "honest_score", "HONEST Score (Lower Better)"
+    if task_types and task_types == {"geopolitical_mcq"}:
+        return dataset, "controller_match_rate", "Controller Match Rate"
+    if task_types and task_types == {"ethical_pair_mcq"}:
+        return dataset, "acceptable_rate", "Acceptable Choice Rate"
     if has_answer:
         return dataset, "accuracy", "Accuracy"
     if has_biased_answer:
@@ -118,17 +146,35 @@ def secondary_metrics_from_metrics(metrics: Dict[str, Any], run_name: str, datas
     return ((((metrics or {}).get(eval_key, {}) or {}).get("dataset_metrics", {}) or {}).get(dataset, {}) or {})
 
 
-def plot_overall(overall: Dict[str, float], out_path: str, ylabel: str, title: str) -> None:
+def plot_overall(
+    overall: Dict[str, float],
+    out_path: str,
+    ylabel: str,
+    title: str,
+    lower_is_better: bool = False,
+) -> None:
     labels = list(overall.keys())
     vals = [overall[k] for k in labels]
     plt.figure(figsize=(8, 4.5))
-    bars = plt.bar(labels, vals)
-    plt.ylim(0, 1.05)
-    plt.ylabel(ylabel)
-    plt.title(title)
-    plt.xticks(rotation=20, ha="right")
-    for bar, val in zip(bars, vals):
-        plt.text(bar.get_x() + bar.get_width() / 2, val + 0.02, f"{val:.3f}", ha="center", fontsize=9)
+    if lower_is_better:
+        ranked = sorted(zip(labels, vals), key=lambda x: x[1])
+        labels = [x[0] for x in ranked]
+        vals = [x[1] for x in ranked]
+        bars = plt.barh(labels, vals)
+        plt.xlim(0, 1.05)
+        plt.xlabel(ylabel)
+        plt.title(f"{title}\nLower is better")
+        plt.gca().invert_yaxis()
+        for bar, val in zip(bars, vals):
+            plt.text(val + 0.02, bar.get_y() + bar.get_height() / 2, f"{val:.3f}", va="center", fontsize=9)
+    else:
+        bars = plt.bar(labels, vals)
+        plt.ylim(0, 1.05)
+        plt.ylabel(ylabel)
+        plt.title(title)
+        plt.xticks(rotation=20, ha="right")
+        for bar, val in zip(bars, vals):
+            plt.text(bar.get_x() + bar.get_width() / 2, val + 0.02, f"{val:.3f}", ha="center", fontsize=9)
     plt.tight_layout()
     plt.savefig(out_path, dpi=180)
     plt.close()
@@ -188,19 +234,18 @@ def run_is_complete(output_dir: Path, name: str, expected_n: int) -> bool:
 
 def run(args: argparse.Namespace) -> None:
     base_cfg = load_yaml(args.config)
-    run_root = Path(args.out_root) / (args.tag.strip() if args.tag.strip() else now_tag())
-    ensure_dir(str(run_root))
-    ensure_dir(str(run_root / "configs"))
-    ensure_dir(str(run_root / "caches"))
-    ensure_dir(str(run_root / "runs"))
-    ensure_dir(str(run_root / "analysis"))
-
     cfg_run = copy.deepcopy(base_cfg)
     if args.provider:
         cfg_run["llm"]["provider"] = args.provider
     if args.model:
         cfg_run["llm"]["model"] = args.model
     cfg_run["llm"]["temperature"] = float(args.temperature)
+    run_root = resolve_run_root(args.out_root, cfg_run, args.tag)
+    ensure_dir(str(run_root))
+    ensure_dir(str(run_root / "configs"))
+    ensure_dir(str(run_root / "caches"))
+    ensure_dir(str(run_root / "runs"))
+    ensure_dir(str(run_root / "analysis"))
 
     subset_eval = run_root / "eval_subset.jsonl"
     cfg_run["experiment"]["eval_path"] = prepare_subset(
@@ -289,6 +334,7 @@ def run(args: argparse.Namespace) -> None:
         str(run_root / "analysis" / "primary_metric_ablation.png"),
         ylabel=metric_label,
         title=f"{dataset} Ablation ({metric_label})",
+        lower_is_better=(metric_name == "honest_score"),
     )
 
     summary = {
@@ -332,7 +378,7 @@ def run(args: argparse.Namespace) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run cumulative ablation for external benchmarks with task-specific metrics.")
     parser.add_argument("--config", default="configs/external/config_bbq_200.yaml")
-    parser.add_argument("--out-root", default="outputs/external_ablation")
+    parser.add_argument("--out-root", default="outputs")
     parser.add_argument("--tag", default="")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--refresh-cache", action="store_true")

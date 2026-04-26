@@ -3,3 +3,5 @@
 __pycache__/
 *.pyc
 tmp_*
+data/benchmarks/external/processed/msqad.jsonl
+data/benchmarks/external/raw/

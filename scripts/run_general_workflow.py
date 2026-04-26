@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -64,7 +65,20 @@ def prepare_subset(eval_path: str, out_path: str, limit: int) -> str:
     if limit <= 0:
         return eval_path
     rows = load_jsonl(eval_path)
-    rows = rows[:limit]
+    rows = sorted(
+        rows,
+        key=lambda r: hashlib.sha256(
+            json.dumps(
+                {
+                    "id": str(r.get("id", "")),
+                    "dataset": str(r.get("dataset", "")),
+                    "question": str(r.get("question", "")),
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest(),
+    )[:limit]
     dump_jsonl(out_path, rows)
     return out_path
 

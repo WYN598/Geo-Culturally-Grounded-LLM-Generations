@@ -68,17 +68,37 @@ class OpenAIEmbedder:
         self.timeout = float(os.getenv("OPENAI_TIMEOUT_SEC", "60"))
         self._client = None
 
+    @staticmethod
+    def _default_openai_base_url() -> str:
+        return "https://api.openai.com/v1"
+
+    def _get_embedding_api_key(self) -> str:
+        return (
+            os.getenv("OPENAI_EMBEDDING_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+            or os.getenv("OPENAIAPI")
+            or ""
+        )
+
+    def _get_embedding_base_url(self) -> str:
+        return os.getenv("OPENAI_EMBEDDING_BASE_URL") or os.getenv(
+            "OPENAI_BASE_URL",
+            self._default_openai_base_url(),
+        )
+
     def _get_client(self):
         if self._client is not None:
             return self._client
         from openai import OpenAI
 
-        api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAIAPI")
+        api_key = self._get_embedding_api_key()
         if not api_key:
-            raise RuntimeError("Dense KB retrieval requires OPENAI_API_KEY/OPENAIAPI for embeddings.")
+            raise RuntimeError(
+                "Dense KB retrieval requires OPENAI_EMBEDDING_API_KEY/OPENAI_API_KEY/OPENAIAPI for embeddings."
+            )
         self._client = OpenAI(
             api_key=api_key,
-            base_url=os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+            base_url=self._get_embedding_base_url(),
             timeout=self.timeout,
             max_retries=2,
         )

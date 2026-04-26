@@ -1,5 +1,6 @@
 import argparse
 import copy
+import hashlib
 import json
 import os
 import subprocess
@@ -16,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.pipeline import load_jsonl
+from src.pipeline import jsonl_integrity_summary, load_jsonl
 
 
 def ensure_dir(path: str) -> None:
@@ -54,7 +55,20 @@ def prepare_subset(eval_path: str, out_path: str, limit: int) -> str:
     if limit <= 0:
         return eval_path
     rows = load_jsonl(eval_path)
-    rows = rows[:limit]
+    rows = sorted(
+        rows,
+        key=lambda r: hashlib.sha256(
+            json.dumps(
+                {
+                    "id": str(r.get("id", "")),
+                    "dataset": str(r.get("dataset", "")),
+                    "question": str(r.get("question", "")),
+                },
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode("utf-8")
+        ).hexdigest(),
+    )[:limit]
     ensure_dir(str(Path(out_path).parent))
     with open(out_path, "w", encoding="utf-8") as f:
         for r in rows:
@@ -62,10 +76,16 @@ def prepare_subset(eval_path: str, out_path: str, limit: int) -> str:
     return out_path
 
 
-def run_is_complete(output_dir: Path, mode: str) -> bool:
+def run_is_complete(output_dir: Path, mode: str, expected_n: int) -> bool:
     metrics_path = output_dir / "metrics.json"
     pred_file = output_dir / ("vanilla_predictions.jsonl" if mode == "vanilla" else "search_predictions.jsonl")
-    return metrics_path.exists() and pred_file.exists() and metrics_path.stat().st_size > 0 and pred_file.stat().st_size > 0
+    if not (metrics_path.exists() and pred_file.exists() and metrics_path.stat().st_size > 0 and pred_file.stat().st_size > 0):
+        return False
+    try:
+        integrity = jsonl_integrity_summary(str(pred_file), expected_n=expected_n)
+    except Exception:
+        return False
+    return bool(integrity.get("is_complete", False))
 
 
 def acc(rows: List[Dict[str, Any]]) -> float:
@@ -185,6 +205,7 @@ def build_groups(base_scfg: Dict[str, Any]) -> List[Dict[str, Any]]:
         "pipeline_variant": "general",
         "llm_relevance": False,
         "domain_priors": {},
+        "strict_feature_checks": True,
         "embedding_preranker": "none",
         "semantic_reranker": "none",
         "enable_evidence_organization": False,
@@ -378,6 +399,7 @@ def run(args: argparse.Namespace) -> None:
         str(subset_eval),
         args.limit,
     )
+    expected_n = len(load_jsonl(str(cfg_run["experiment"]["eval_path"])))
 
     base_cfg_path = run_root / "configs" / "config_base.yaml"
     write_yaml(str(base_cfg_path), cfg_run)
@@ -390,7 +412,7 @@ def run(args: argparse.Namespace) -> None:
     vanilla_cfg["experiment"]["output_dir"] = str(vanilla_out)
     vanilla_cfg_path = run_root / "configs" / "config_vanilla.yaml"
     write_yaml(str(vanilla_cfg_path), vanilla_cfg)
-    if not run_is_complete(vanilla_out, "vanilla"):
+    if not run_is_complete(vanilla_out, "vanilla", expected_n):
         run_cmd([sys.executable, "-m", "src.main", "--mode", "vanilla", "--config", str(vanilla_cfg_path)])
     vanilla_rows = load_jsonl(str(vanilla_out / "vanilla_predictions.jsonl"))
     runs.append(
@@ -451,7 +473,7 @@ def run(args: argparse.Namespace) -> None:
 
         run_cfg_path = run_root / "configs" / f"config_{name}.yaml"
         write_yaml(str(run_cfg_path), run_cfg)
-        if not run_is_complete(run_out, "search"):
+        if not run_is_complete(run_out, "search", expected_n):
             run_cmd([sys.executable, "-m", "src.main", "--mode", "search", "--config", str(run_cfg_path)])
 
         pred_rows = load_jsonl(str(run_out / "search_predictions.jsonl"))

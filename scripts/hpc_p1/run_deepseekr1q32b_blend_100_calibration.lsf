@@ -1,0 +1,23 @@
+#!/bin/bash
+#BSUB -q p1
+#BSUB -J deepseekr1q32b_blend100_calib
+#BSUB -n 4
+#BSUB -gpu "num=1:mode=exclusive_process"
+#BSUB -R "rusage[mem=32GB]"
+#BSUB -R "span[hosts=1]"
+#BSUB -W 04:00
+#BSUB -oo /dtu/p1/yanwen/bias-rag/project/logs/deepseekr1q32b_blend100_calib.out
+#BSUB -eo /dtu/p1/yanwen/bias-rag/project/logs/deepseekr1q32b_blend100_calib.err
+
+set -euo pipefail
+
+export MODEL_ID="deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
+export BENCH_TAG="blend_100"
+export CONFIG_PATH="configs/legacy_100_ablation/config_blend_100_ablation.yaml"
+export OUT_ROOT="outputs/deepseek_r1q32b_calibration"
+export LOG_PREFIX="vllm_deepseekr1q32b_blend100_calib"
+export TP_SIZE="1"
+export GPU_MEMORY_UTILIZATION="0.96"
+export MAX_MODEL_LEN="4096"
+
+bash scripts/hpc_p1/run_open_model_5way_ablation.sh

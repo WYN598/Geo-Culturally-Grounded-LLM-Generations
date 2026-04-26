@@ -1,0 +1,22 @@
+{
+  "seed": 42,
+  "per_dataset": 200,
+  "datasets": {
+    "cbbq": {
+      "input": 118666,
+      "sampled": 200,
+      "output": "data\\benchmarks\\external\\sampled\\cbbq_200.jsonl"
+    },
+    "borderlines": {
+      "input": 507,
+      "sampled": 200,
+      "output": "data\\benchmarks\\external\\sampled\\borderlines_200.jsonl"
+    },
+    "msqad": {
+      "input": 169512,
+      "sampled": 200,
+      "output": "data\\benchmarks\\external\\sampled\\msqad_200.jsonl"
+    }
+  },
+  "combined_output": "data\\benchmarks\\external\\sampled\\external_mix_200x3.jsonl"
+}

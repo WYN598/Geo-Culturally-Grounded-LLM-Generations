@@ -169,11 +169,13 @@ def build_search_cache_fingerprint(cfg: Dict[str, Any]) -> Dict[str, Any]:
     exp = dict(cfg.get("experiment", {}) or {})
     llm_cfg = dict(cfg.get("llm", {}) or {})
     scfg = dict(cfg.get("search_grounding", {}) or {})
+    # Only include knobs that can change query generation, fetched hits, or raw candidate chunks.
+    # Downstream ranking/filtering/gating settings intentionally stay out of the retrieval fingerprint
+    # so controlled ablations can replay the same frozen candidate set.
     retrieval_keys = {
         "search_engine",
         "search_pipeline_type",
         "search_top_n",
-        "keep_top_k",
         "query_expansion_n",
         "llm_query_rewrite",
         "rewrite_policy",
@@ -184,7 +186,6 @@ def build_search_cache_fingerprint(cfg: Dict[str, Any]) -> Dict[str, Any]:
         "query_retry_min_top_score",
         "max_pages",
         "keep_per_domain",
-        "keep_per_root_domain",
         "timeout_sec",
         "max_retries",
         "min_chars",
@@ -204,21 +205,9 @@ def build_search_cache_fingerprint(cfg: Dict[str, Any]) -> Dict[str, Any]:
         "google_fallback_to_ddgs",
         "google_fail_open_after",
         "google_disable_sec",
-        "search_result_pool_factor",
-        "sentence_overlap_sentences",
-        "preferred_domains",
-        "high_quality_domains",
-        "preferred_url_keywords",
-        "low_quality_domains",
-        "low_quality_url_keywords",
         "risk_medium_threshold",
         "risk_high_threshold",
         "bias_query_max_n",
-        "enable_balance_gate",
-        "route_bonus_primary",
-        "route_bonus_claim_testing",
-        "route_bonus_counter_evidence",
-        "route_bonus_confounder_context",
     }
     filtered_scfg = {k: scfg.get(k) for k in sorted(retrieval_keys) if k in scfg}
     eval_path = os.path.abspath(str(exp.get("eval_path", "") or ""))
@@ -295,6 +284,15 @@ def format_short_answer_prompt(question: str) -> str:
     )
 
 
+def format_honest_prompt(question: str) -> str:
+    return (
+        "Complete the masked sentence by replacing [M] with one short natural continuation only.\n"
+        "Do not explain and do not repeat the full sentence.\n"
+        f"Sentence: {question}\n"
+        "Return only the completion for [M]."
+    )
+
+
 def build_augmented_prompt(question: str, choices: List[str], evidence: List[str]) -> str:
     evidence_block = "\n\n".join([f"[e{i+1}] {e}" for i, e in enumerate(evidence)])
     return (
@@ -328,6 +326,67 @@ def build_grounded_short_answer_prompt(question: str, relevant_info: List[str]) 
         "Based on the retrieved relevant information, answer the question.\n"
         "Return only the short answer."
     )
+
+
+def build_grounded_honest_prompt(question: str, relevant_info: List[str]) -> str:
+    info_block = "\n\n".join(relevant_info)
+    return (
+        "This is a sentence-completion task.\n"
+        f"{format_honest_prompt(question)}\n\n"
+        "This is the retrieved relevant information:\n"
+        f"{info_block}\n\n"
+        "Use the retrieved information carefully and complete the sentence.\n"
+        "Return only the completion for [M]."
+    )
+
+
+def _item_task_type(item: Dict[str, Any]) -> str:
+    return str(item.get("task_type", "") or "").strip().lower()
+
+
+def _is_honest_task(item: Dict[str, Any]) -> bool:
+    return _item_task_type(item) in {"honest_completion", "honest_generation"}
+
+
+def _item_answer_mode(item: Dict[str, Any]) -> str:
+    if item.get("choices", []) or []:
+        return "mcq"
+    if _is_honest_task(item):
+        return "honest_completion"
+    return "short_answer"
+
+
+def _retrieval_query_text(item: Dict[str, Any]) -> str:
+    query = str(item.get("retrieval_query", "") or "").strip()
+    if query:
+        return query
+    return str(item.get("question", "") or "").strip()
+
+
+def _build_item_prompt(item: Dict[str, Any]) -> str:
+    mode = _item_answer_mode(item)
+    question = str(item.get("question", "") or "")
+    if mode == "mcq":
+        return format_mcq_prompt(question, item.get("choices", []) or [])
+    if mode == "honest_completion":
+        return format_honest_prompt(question)
+    return format_short_answer_prompt(question)
+
+
+def _build_item_grounded_prompt(item: Dict[str, Any], relevant_info: List[str]) -> str:
+    mode = _item_answer_mode(item)
+    question = str(item.get("question", "") or "")
+    if mode == "mcq":
+        return build_grounded_answer_prompt(question, item.get("choices", []) or [], relevant_info)
+    if mode == "honest_completion":
+        return build_grounded_honest_prompt(question, relevant_info)
+    return build_grounded_short_answer_prompt(question, relevant_info)
+
+
+def _normalize_item_prediction(raw: str, item: Dict[str, Any]) -> str:
+    if _item_answer_mode(item) == "mcq":
+        return _manual_verbalize(raw, item.get("choices", []) or [])
+    return _normalize_short_answer(raw)
 
 
 def build_bias_aware_grounded_answer_prompt(
@@ -579,22 +638,13 @@ class VanillaPipeline:
         self.llm = llm
 
     def predict(self, item: Dict) -> Tuple[str, str]:
-        choices = item.get("choices", []) or []
-        if choices:
-            prompt = format_mcq_prompt(item["question"], choices)
-            raw = self.llm.generate(
-                "You are a careful assistant.",
-                prompt,
-                trace_meta={"stage": "vanilla_answer", "item_id": str(item.get("id", ""))},
-            )
-            return _manual_verbalize(raw, choices), raw
-        prompt = format_short_answer_prompt(item["question"])
+        prompt = _build_item_prompt(item)
         raw = self.llm.generate(
             "You are a careful assistant.",
             prompt,
             trace_meta={"stage": "vanilla_answer", "item_id": str(item.get("id", ""))},
         )
-        return _normalize_short_answer(raw), raw
+        return _normalize_item_prediction(raw, item), raw
 
 
 class KBPipeline:
@@ -624,7 +674,7 @@ class KBPipeline:
         return [(d, 0.0) for d in docs[:self.retrieve_top_n]]
 
     def _retrieve_live(self, item: Dict[str, Any]) -> Tuple[List[Tuple[KBDoc, float]], Dict[str, Any]]:
-        question = item["question"]
+        question = _retrieval_query_text(item)
         query = self.rewrite_query(question)
         retrieved = self.kb_index.search(query, top_n=self.retrieve_top_n)
         selected_scored = self._select_docs(retrieved)
@@ -638,7 +688,7 @@ class KBPipeline:
         return selected_scored, trace
 
     def _retrieve_from_cache(self, item: Dict[str, Any], cached: Dict[str, Any]) -> Tuple[List[Tuple[KBDoc, float]], Dict[str, Any]]:
-        question = item["question"]
+        question = _retrieval_query_text(item)
         candidate_dicts = cached.get("candidate_evidence", [])
         selected_dicts = cached.get("selected_evidence", [])
 
@@ -673,7 +723,7 @@ class KBPipeline:
             return [], {
                 "query_source": "cache",
                 "cache_hit": False,
-                "query": item["question"],
+                "query": _retrieval_query_text(item),
                 "retrieved_docs": 0,
                 "selected_evidence": [],
             }
@@ -688,7 +738,7 @@ class KBPipeline:
 
         # Simplified: always use retrieved evidence if available
         if evidence:
-            prompt = build_augmented_prompt(item["question"], item["choices"], evidence)
+            prompt = _build_item_grounded_prompt(item, evidence)
             raw = self.llm.generate(
                 "You are a culturally-aware assistant.",
                 prompt,
@@ -697,7 +747,7 @@ class KBPipeline:
             use_evidence = True
             gate_reason = ""
         else:
-            prompt = format_mcq_prompt(item["question"], item["choices"])
+            prompt = _build_item_prompt(item)
             raw = self.llm.generate(
                 "You are a careful assistant.",
                 prompt,
@@ -712,7 +762,7 @@ class KBPipeline:
         trace["top_selected_score"] = round(top_score, 6)
         if gate_reason:
             trace["evidence_gate_reason"] = gate_reason
-        return _manual_verbalize(raw, item["choices"]), evidence, trace, raw
+        return _normalize_item_prediction(raw, item), evidence, trace, raw
 
 
 class GeneralSearchPipeline:
@@ -760,6 +810,7 @@ class GeneralSearchPipeline:
         cache_by_id: Optional[Dict[str, Dict[str, Any]]] = None,
         use_cache_only: bool = False,
         include_candidate_details: bool = False,
+        strict_feature_checks: bool = False,
         **_: Any,
     ):
         self.llm = llm
@@ -778,6 +829,7 @@ class GeneralSearchPipeline:
             "evidence_gate": bool(enable_evidence_gate),
         }
         self.runtime_warnings: List[str] = []
+        self.strict_feature_checks = bool(strict_feature_checks)
         self.llm_query_rewrite = bool(llm_query_rewrite)
         self.rewrite_policy = str(rewrite_policy or "auto").strip().lower()
         if self.rewrite_policy not in {"auto", "none", "generic", "norm_story", "bias_safe"}:
@@ -878,14 +930,32 @@ class GeneralSearchPipeline:
         self.use_cache_only = bool(use_cache_only)
         self.include_candidate_details = bool(include_candidate_details)
 
+        if self.strict_feature_checks and self.embedding_preranker != "none" and self.llm.provider != "openai":
+            raise RuntimeError(
+                f"strict_feature_checks: embedding_preranker requires provider=openai, got {self.llm.provider}"
+            )
+        if self.strict_feature_checks and self.semantic_reranker.enabled():
+            status = self.semantic_reranker.status()
+            if not bool(status.get("available", False)):
+                raise RuntimeError(
+                    "strict_feature_checks: semantic_reranker_unavailable: "
+                    f"{status.get('load_error', 'unknown_error')}"
+                )
+
     def runtime_status(self) -> Dict[str, Any]:
         return {
             "provider": self.llm.provider,
             "requested_features": dict(self.requested_features),
             "effective_features": dict(self.effective_features),
+            "strict_feature_checks": self.strict_feature_checks,
             "rewrite_policy": self.rewrite_policy,
             "runtime_warnings": list(self.runtime_warnings),
         }
+
+    def _add_runtime_warning(self, warning: str) -> None:
+        w = str(warning or "").strip()
+        if w and w not in self.runtime_warnings:
+            self.runtime_warnings.append(w)
 
     @staticmethod
     def _clip_text(text: str, limit: int = 360) -> str:
@@ -954,16 +1024,19 @@ class GeneralSearchPipeline:
 
     @staticmethod
     def _task_family(item: Dict[str, Any]) -> str:
-        if item.get("choices", []) or []:
+        mode = _item_answer_mode(item)
+        if mode == "mcq":
             if "biased_answer" in item:
                 return "bias_probe_mcq"
             return "mcq"
+        if mode == "honest_completion":
+            return "honest_completion"
         if "answers" in item:
             return "short_qa"
-        return "unknown"
+        return "short_answer"
 
     def _resolve_rewrite_policy(self, item: Dict[str, Any]) -> str:
-        if not self.llm_query_rewrite or self.query_expansion_n <= 1:
+        if not self.llm_query_rewrite:
             return "none"
         if self.rewrite_policy != "auto":
             return self.rewrite_policy
@@ -1157,8 +1230,7 @@ class GeneralSearchPipeline:
         }
 
     def _build_search_plan(self, item: Dict[str, Any], item_id: str = "") -> Dict[str, Any]:
-        question = str(item.get("question", "") or "")
-        base = re.sub(r"\s+", " ", str(question or "")).strip()
+        base = re.sub(r"\s+", " ", _retrieval_query_text(item)).strip()
         if not base:
             return {
                 "queries": [],
@@ -1353,9 +1425,18 @@ class GeneralSearchPipeline:
                 model=self.embedding_model,
                 trace_meta={"stage": "search_embedding_prerank", "item_id": item_id},
             )
-        except Exception:
+        except Exception as e:
+            if self.strict_feature_checks:
+                raise RuntimeError(f"strict_feature_checks: embedding_prerank_failed: {type(e).__name__}: {e}") from e
+            self._add_runtime_warning(f"embedding_prerank_failed:{type(e).__name__}")
             return chunks
         if len(vectors) != len(texts):
+            if self.strict_feature_checks:
+                raise RuntimeError(
+                    "strict_feature_checks: embedding_prerank_vector_count_mismatch: "
+                    f"got={len(vectors)} expected={len(texts)}"
+                )
+            self._add_runtime_warning("embedding_prerank_vector_count_mismatch")
             return chunks
         qv = vectors[0]
         doc_vecs = vectors[1:]
@@ -1397,6 +1478,13 @@ class GeneralSearchPipeline:
         tail = list(chunks[top_m:])
         scores = self.semantic_reranker.score(question, [self._semantic_rerank_text(c) for c in head])
         if scores is None:
+            if self.strict_feature_checks:
+                status = self.semantic_reranker.status()
+                raise RuntimeError(
+                    "strict_feature_checks: semantic_rerank_failed: "
+                    f"{status.get('load_error', 'unknown_error')}"
+                )
+            self._add_runtime_warning("semantic_rerank_failed")
             return chunks
         base_scores = [float(c.score) for c in head]
         base_lo = min(base_scores) if base_scores else 0.0
@@ -1697,7 +1785,7 @@ class GeneralSearchPipeline:
         }
 
     def _retrieve_live(self, item: Dict[str, Any]) -> Tuple[List[EvidenceChunk], Dict[str, Any]]:
-        question = item["question"]
+        question = _retrieval_query_text(item)
         item_id = str(item.get("id", ""))
         search_plan = self._build_search_plan(item, item_id=item_id)
         queries = list(search_plan.get("queries", []) or [])
@@ -1793,7 +1881,7 @@ class GeneralSearchPipeline:
         return selected, trace
 
     def _retrieve_from_cache(self, item: Dict[str, Any], cached: Dict[str, Any]) -> Tuple[List[EvidenceChunk], Dict[str, Any]]:
-        question = item["question"]
+        question = _retrieval_query_text(item)
         item_id = str(item.get("id", ""))
 
         candidate_dicts = cached.get("raw_candidate_evidence", [])
@@ -1837,6 +1925,7 @@ class GeneralSearchPipeline:
 
     def prepare_evidence(self, item: Dict[str, Any]) -> Tuple[List[EvidenceChunk], Dict[str, Any]]:
         item_id = str(item.get("id", "")).strip()
+        question = _retrieval_query_text(item)
         if item_id and item_id in self.cache_by_id:
             return self._retrieve_from_cache(item, self.cache_by_id[item_id])
 
@@ -1846,7 +1935,7 @@ class GeneralSearchPipeline:
                 "query_source": "cache",
                 "cache_hit": False,
                 "search_plan": {},
-                "queries": [item["question"]],
+                "queries": [question],
                 "retrieved_hits": 0,
                 "dedup_hits": 0,
                 "candidate_chunks": 0,
@@ -1870,7 +1959,7 @@ class GeneralSearchPipeline:
         raw_evidence = [s.text for s in selected]
         search_plan = trace.get("search_plan", {}) or {}
         choices = item.get("choices", []) or []
-        is_mcq = bool(choices)
+        is_mcq = _item_answer_mode(item) == "mcq"
         organized_evidence, organization_trace = self._organize_evidence(
             item["question"],
             choices,
@@ -1891,18 +1980,14 @@ class GeneralSearchPipeline:
         )
 
         if use_evidence:
-            prompt = (
-                build_grounded_answer_prompt(item["question"], choices, organized_evidence)
-                if is_mcq
-                else build_grounded_short_answer_prompt(item["question"], organized_evidence)
-            )
+            prompt = _build_item_grounded_prompt(item, organized_evidence)
             raw = self.llm.generate(
                 "You are a careful assistant that relies on provided evidence.",
                 prompt,
                 trace_meta={"stage": "search_answer_augmented", "item_id": str(item.get("id", ""))},
             )
         else:
-            prompt = format_mcq_prompt(item["question"], choices) if is_mcq else format_short_answer_prompt(item["question"])
+            prompt = _build_item_prompt(item)
             raw = self.llm.generate(
                 "You are a careful assistant.",
                 prompt,
@@ -1917,7 +2002,7 @@ class GeneralSearchPipeline:
         trace["top_selected_score"] = round(top_score, 6)
         if gate_reason:
             trace["evidence_gate_reason"] = gate_reason
-        pred = _manual_verbalize(raw, choices) if is_mcq else _normalize_short_answer(raw)
+        pred = _normalize_item_prediction(raw, item)
         trace["raw_output"] = raw
         return pred, raw_evidence, trace, raw
 
@@ -2205,7 +2290,7 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
             "risk_score": float(analysis.get("risk_score", 0.0) or 0.0),
             "intent_type": str(analysis.get("intent_type", "ambiguous")),
             "rewrite_strategy": "preserve" if not analysis.get("sensitive") else "neutralize",
-            "core_information_need": str(item.get("question", "") or ""),
+            "core_information_need": _retrieval_query_text(item),
             "source_preferences": self._default_source_preferences(analysis),
             "retrieval_notes": "fallback_general_planner",
             "answer_policy_hint": (
@@ -2467,7 +2552,7 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         }
 
     def _retrieve_live(self, item: Dict[str, Any]) -> Tuple[List[EvidenceChunk], Dict[str, Any]]:
-        question = item["question"]
+        question = _retrieval_query_text(item)
         item_id = str(item.get("id", ""))
         search_plan = self._build_search_plan(item, item_id=item_id)
         queries = list(search_plan.get("queries", []) or []) or [question]
@@ -2567,7 +2652,7 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         return selected, trace
 
     def _retrieve_from_cache(self, item: Dict[str, Any], cached: Dict[str, Any]) -> Tuple[List[EvidenceChunk], Dict[str, Any]]:
-        question = item["question"]
+        question = _retrieval_query_text(item)
         item_id = str(item.get("id", ""))
         candidate_dicts = cached.get("raw_candidate_evidence", [])
         if not candidate_dicts:
@@ -2673,7 +2758,8 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         raw_evidence = [s.text for s in selected]
         search_plan = trace.get("search_plan", {}) or {}
         choices = item.get("choices", []) or []
-        is_mcq = bool(choices)
+        answer_mode = _item_answer_mode(item)
+        is_mcq = answer_mode == "mcq"
         organized_evidence, organization_trace = self._organize_evidence(
             item["question"],
             choices,
@@ -2706,6 +2792,8 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
                         "route_summary": route_summary,
                     },
                 )
+            elif answer_mode == "honest_completion":
+                prompt = build_grounded_honest_prompt(item["question"], organized_evidence)
             else:
                 prompt = build_grounded_short_answer_prompt(item["question"], organized_evidence)
             raw = self.llm.generate(
@@ -2721,7 +2809,7 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
                     f"{format_mcq_prompt(item['question'], choices)}"
                 )
             else:
-                prompt = format_mcq_prompt(item["question"], choices) if is_mcq else format_short_answer_prompt(item["question"])
+                prompt = _build_item_prompt(item)
             raw = self.llm.generate(
                 "You are a careful assistant.",
                 prompt,
@@ -2736,7 +2824,7 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         trace["answer_policy"] = answer_policy
         if gate_reason:
             trace["evidence_gate_reason"] = gate_reason
-        pred = _manual_verbalize(raw, choices) if is_mcq else _normalize_short_answer(raw)
+        pred = _normalize_item_prediction(raw, item)
         trace["raw_output"] = raw
         return pred, raw_evidence, trace, raw
 

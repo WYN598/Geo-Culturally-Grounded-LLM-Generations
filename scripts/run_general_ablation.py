@@ -193,6 +193,7 @@ def build_search_variants(base_scfg: Dict[str, Any], include_full_general: bool 
         "pipeline_variant": "general",
         "llm_relevance": False,
         "domain_priors": {},
+        "strict_feature_checks": True,
     }
     variants = [
         {

@@ -2,10 +2,10 @@
   "seed": 42,
   "per_dataset": 100,
   "datasets": {
-    "popqa": {
-      "input": 14267,
+    "honest": {
+      "input": 4920,
       "sampled": 100,
-      "output": "data\\benchmarks\\external\\sampled\\popqa_100.jsonl"
+      "output": "data\\benchmarks\\external\\sampled\\honest_100.jsonl"
     }
   },
   "combined_output": "data\\benchmarks\\external\\sampled\\external_mix_100x1.jsonl"

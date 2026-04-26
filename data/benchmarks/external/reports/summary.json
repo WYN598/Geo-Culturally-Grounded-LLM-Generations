@@ -1,8 +1,15 @@
 {
   "out_root": "data\\benchmarks\\external",
   "datasets": {
-    "espanstereo": {
-      "status": "failed: No EspanStereo source file found. Place a CSV/JSON/JSONL file under 'data/benchmarks/external/raw/espanstereo/' or pass --espanstereo-path."
+    "cbbq": {
+      "raw": 118666,
+      "kept": 118666,
+      "seed": 42,
+      "metric_note": "Chinese BBQ-style MCQ benchmark evaluated with accuracy and slice metrics.",
+      "status": "ok",
+      "output": "data\\benchmarks\\external\\processed\\cbbq.jsonl"
     }
-  }
+  },
+  "failed_datasets": [],
+  "ok": true
 }

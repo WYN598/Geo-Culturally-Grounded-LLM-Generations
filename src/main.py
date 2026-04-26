@@ -206,6 +206,7 @@ def run(mode: str, config_path: str) -> None:
             cache_by_id=cache_by_id,
             use_cache_only=bool(scfg.get("use_cache_only", False)),
             include_candidate_details=bool(scfg.get("include_candidate_details", False)),
+            strict_feature_checks=bool(scfg.get("strict_feature_checks", False)),
         )
         preds = []
         for item in eval_rows:

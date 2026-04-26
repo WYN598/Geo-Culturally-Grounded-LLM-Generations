@@ -1,0 +1,14 @@
+{
+  "outputs": [
+    {
+      "system": "openai",
+      "mode": "rel_langs",
+      "query_langs": [
+        "en"
+      ],
+      "eval_path": "data\\benchmarks\\bordirlines\\processed\\bordirlines_en_openai_rel_langs.jsonl",
+      "cache_path": "data\\benchmarks\\bordirlines\\caches\\bordirlines_en_openai_rel_langs.jsonl",
+      "rows": 38
+    }
+  ]
+}

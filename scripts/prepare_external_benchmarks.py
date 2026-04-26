@@ -1,6 +1,7 @@
 import argparse
 import json
 import random
+import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -8,8 +9,9 @@ import pandas as pd
 import csv
 
 try:
-    from datasets import get_dataset_config_names, load_dataset
+    from datasets import Dataset, get_dataset_config_names, load_dataset
 except Exception:
+    Dataset = None
     get_dataset_config_names = None
     load_dataset = None
 
@@ -37,6 +39,22 @@ def _hf_load(dataset_id: str, config: Optional[str] = None):
     if load_dataset is None:
         raise RuntimeError("datasets is not available. Install with: pip install datasets")
     return load_dataset(dataset_id, config) if config else load_dataset(dataset_id)
+
+
+def _hf_cache_root() -> Path:
+    return Path.home() / ".cache" / "huggingface" / "datasets"
+
+
+def _load_cached_arrow_rows(pattern: str) -> List[Dict[str, Any]]:
+    if Dataset is None:
+        raise RuntimeError("datasets is not available. Install with: pip install datasets")
+    rows: List[Dict[str, Any]] = []
+    for path in sorted(_hf_cache_root().glob(pattern)):
+        ds = Dataset.from_file(str(path))
+        rows.extend(ds.to_list())
+    if not rows:
+        raise FileNotFoundError(f"No cached arrow files matched: {pattern}")
+    return rows
 
 
 def _parse_jsonish_list(text: Any) -> List[str]:
@@ -92,6 +110,79 @@ def _bool_to_answer(value: Any) -> Optional[str]:
     if raw in {"false", "0", "no", "n"}:
         return "B"
     return None
+
+
+HONEST_DEFAULT_SUBSETS = [
+    "en_binary",
+    "es_binary",
+    "fr_binary",
+    "it_binary",
+    "pt_binary",
+    "ro_binary",
+]
+HONEST_ALL_SUBSETS = HONEST_DEFAULT_SUBSETS + ["en_queer_nonqueer"]
+MSQAD_LANGUAGE_FIELDS = {
+    "en": "English",
+    "ko": "Korean",
+    "zh": "Chinese",
+    "es": "Spanish",
+    "de": "German",
+    "hi": "Hindi",
+}
+HONEST_REMOTE_FILES = {
+    "en_binary": "https://raw.githubusercontent.com/MilaNLProc/honest/main/resources/binary/en_template.tsv",
+    "es_binary": "https://raw.githubusercontent.com/MilaNLProc/honest/main/resources/binary/es_template.tsv",
+    "fr_binary": "https://raw.githubusercontent.com/MilaNLProc/honest/main/resources/binary/fr_template.tsv",
+    "it_binary": "https://raw.githubusercontent.com/MilaNLProc/honest/main/resources/binary/it_template.tsv",
+    "pt_binary": "https://raw.githubusercontent.com/MilaNLProc/honest/main/resources/binary/pt_template.tsv",
+    "ro_binary": "https://raw.githubusercontent.com/MilaNLProc/honest/main/resources/binary/ro_template.tsv",
+    "en_queer_nonqueer": "https://raw.githubusercontent.com/MilaNLProc/honest/main/resources/queer_nonqueer/en_template.tsv",
+}
+
+
+def _clean_honest_query(text: str) -> str:
+    out = normalize_text(text).replace("[M]", " ")
+    out = re.sub(r"\s+", " ", out)
+    out = re.sub(r"\s+([,.;!?])", r"\1", out)
+    return out.strip()
+
+
+def _slugify(text: Any) -> str:
+    value = normalize_text(text).lower()
+    value = re.sub(r"[^a-z0-9]+", "_", value)
+    return value.strip("_") or "unknown"
+
+
+def _load_honest_subset(subset: str, source_root: str = "") -> pd.DataFrame:
+    filename = f"{subset}.tsv"
+    candidates: List[Path] = []
+    if source_root.strip():
+        root = Path(source_root)
+        if root.is_dir():
+            candidates.append(root / filename)
+            candidates.append(root / f"{subset}.csv")
+        elif root.exists():
+            candidates.append(root)
+    else:
+        raw_root = Path("data/benchmarks/external/raw/honest")
+        candidates.append(raw_root / filename)
+        candidates.append(raw_root / f"{subset}.csv")
+
+    for path in candidates:
+        if path.exists():
+            sep = "\t" if path.suffix.lower() == ".tsv" else ","
+            return pd.read_csv(path, sep=sep)
+
+    url = HONEST_REMOTE_FILES.get(subset)
+    if not url:
+        raise ValueError(f"Unsupported HONEST subset: {subset}")
+    try:
+        return pd.read_csv(url, sep="\t")
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to load HONEST subset '{subset}' from local raw files or remote URL. "
+            f"Place '{filename}' under data/benchmarks/external/raw/honest/ or pass --honest-source-root."
+        ) from e
 
 
 def convert_bbq(seed: int = 42) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
@@ -474,6 +565,269 @@ def convert_espanstereo(seed: int = 42, source_path: str = "") -> Tuple[List[Dic
     return rows, report
 
 
+def convert_honest(
+    seed: int = 42,
+    subsets: Optional[List[str]] = None,
+    source_root: str = "",
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    subset_list = [str(x).strip() for x in (subsets or HONEST_DEFAULT_SUBSETS) if str(x).strip()]
+    if not subset_list:
+        subset_list = list(HONEST_DEFAULT_SUBSETS)
+    if len(subset_list) == 1 and subset_list[0].lower() == "all":
+        subset_list = list(HONEST_ALL_SUBSETS)
+
+    rows: List[Dict[str, Any]] = []
+    raw = 0
+    for subset in subset_list:
+        df = _load_honest_subset(subset, source_root=source_root)
+        lang = subset.split("_", 1)[0].lower()
+        identity_set = "queer_nonqueer" if "queer" in subset.lower() else "binary"
+        for idx, ex in enumerate(df.to_dict("records")):
+            raw += 1
+            template_masked = normalize_text(ex.get("template_masked"))
+            if not template_masked or "[M]" not in template_masked:
+                continue
+            retrieval_query = _clean_honest_query(template_masked)
+            if not retrieval_query:
+                continue
+            category = normalize_text(ex.get("category")).lower() or "unknown"
+            template_type = normalize_text(ex.get("type")).lower() or "unknown"
+            raw_template = normalize_text(ex.get("raw"))
+            rows.append(
+                {
+                    "id": f"HONEST_{subset}_{idx}",
+                    "dataset": "HONEST",
+                    "task_type": "honest_completion",
+                    "benchmark_family": "bias",
+                    "question": template_masked,
+                    "retrieval_query": retrieval_query,
+                    "sampling_bucket": f"{lang}:{category}",
+                    "metadata": {
+                        "subset": subset,
+                        "language": lang,
+                        "identity_set": identity_set,
+                        "category": category,
+                        "identity": normalize_text(ex.get("identity")),
+                        "number": normalize_text(ex.get("number")).lower() or "unknown",
+                        "template_type": template_type,
+                        "template_masked": template_masked,
+                        "raw_template": raw_template,
+                        "eval_protocol": "official_honest_score",
+                    },
+                }
+            )
+
+    report = {
+        "subsets": subset_list,
+        "raw": raw,
+        "kept": len(rows),
+        "seed": seed,
+        "metric_note": "Generative sentence-completion benchmark scored with the official HONEST evaluator. Lower HONEST score is better.",
+        "source_mode": "local_or_remote_tsv",
+    }
+    return rows, report
+
+
+def convert_cbbq(seed: int = 42) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    cache_pattern = "walledai___cbbq/default/*/*/*.arrow"
+    if list(_hf_cache_root().glob(cache_pattern)):
+        split_rows = _load_cached_arrow_rows("walledai___cbbq/default/*/*/*.arrow")
+    else:
+        ds = _hf_load("walledai/CBBQ")
+        split_rows = list(ds["train" if "train" in ds else next(iter(ds.keys()))])
+    rows: List[Dict[str, Any]] = []
+    raw = 0
+    for idx, ex in enumerate(split_rows):
+        raw += 1
+        context = normalize_text(ex.get("context"))
+        question = normalize_text(ex.get("question"))
+        choices = [normalize_text(x) for x in (ex.get("choices") or []) if normalize_text(x)]
+        if not question or len(choices) < 2:
+            continue
+        full_question = question if not context else f"{context}\n\n{question}"
+        try:
+            answer_idx = int(ex.get("answer"))
+        except Exception:
+            continue
+        if answer_idx < 0 or answer_idx >= len(choices):
+            continue
+        category = normalize_text(ex.get("category")).lower() or "unknown"
+        rows.append(
+            {
+                "id": f"CBBQ_{idx}",
+                "dataset": "CBBQ",
+                "task_type": "mcq",
+                "benchmark_family": "bias",
+                "question": full_question,
+                "choices": letter_choices(choices),
+                "answer": chr(ord("A") + answer_idx),
+                "sampling_bucket": f"zh:{category}",
+                "metadata": {
+                    "language": "zh",
+                    "category": category,
+                    "eval_protocol": "direct_mcq",
+                },
+            }
+        )
+    report = {
+        "raw": raw,
+        "kept": len(rows),
+        "seed": seed,
+        "metric_note": "Chinese BBQ-style MCQ benchmark evaluated with accuracy and slice metrics.",
+    }
+    return rows, report
+
+
+def convert_borderlines(seed: int = 42) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    query_pattern = "manestay___borderlines/queries/*/*/*.arrow"
+    territory_pattern = "manestay___borderlines/territories/*/*/*.arrow"
+    if list(_hf_cache_root().glob(query_pattern)) and list(_hf_cache_root().glob(territory_pattern)):
+        query_rows = _load_cached_arrow_rows("manestay___borderlines/queries/*/*/*.arrow")
+        query_splits = {}
+        for row in query_rows:
+            query_id = normalize_text(row.get("QueryID"))
+            lang = query_id.rsplit("_", 1)[-1].lower() if "_" in query_id else "unknown"
+            query_splits.setdefault(lang, []).append(row)
+        territory_rows = _load_cached_arrow_rows("manestay___borderlines/territories/*/*/*.arrow")
+    else:
+        queries_ds = _hf_load("manestay/borderlines", "queries")
+        territories_ds = _hf_load("manestay/borderlines", "territories")
+        query_splits = {str(name): list(split_rows) for name, split_rows in queries_ds.items()}
+        territory_split = "train" if "train" in territories_ds else next(iter(territories_ds.keys()))
+        territory_rows = list(territories_ds[territory_split])
+    rows: List[Dict[str, Any]] = []
+    raw = 0
+    for split_name, split_rows in query_splits.items():
+        lang = normalize_text(split_name).lower()
+        for idx, ex in enumerate(split_rows):
+            raw += 1
+            try:
+                territory_idx = int(ex.get("Index_Territory"))
+            except Exception:
+                continue
+            if territory_idx < 0 or territory_idx >= len(territory_rows):
+                continue
+            territory_info = territory_rows[territory_idx]
+            claimants_native = [normalize_text(x) for x in (ex.get("Claimants_Native") or []) if normalize_text(x)]
+            claimants_en = [normalize_text(x) for x in (territory_info.get("Claimants") or []) if normalize_text(x)]
+            question = normalize_text(ex.get("Query_Native"))
+            if not question or len(claimants_native) < 2 or len(claimants_native) != len(claimants_en):
+                continue
+            controller = normalize_text(territory_info.get("Controller"))
+            answer = ""
+            if controller and controller.lower() != "unknown" and controller in claimants_en:
+                answer = chr(ord("A") + claimants_en.index(controller))
+            region = normalize_text(territory_info.get("Region")).lower() or "unknown"
+            territory = normalize_text(territory_info.get("Territory")) or normalize_text(ex.get("QueryID"))
+            rows.append(
+                {
+                    "id": f"BorderLines_{normalize_text(ex.get('QueryID'))}",
+                    "dataset": "BorderLines",
+                    "task_type": "geopolitical_mcq",
+                    "benchmark_family": "bias",
+                    "question": question,
+                    "choices": letter_choices(claimants_native),
+                    "answer": answer,
+                    "sampling_bucket": f"{lang}:{region}",
+                    "metadata": {
+                        "language": lang,
+                        "region": region,
+                        "territory": territory,
+                        "controller": controller,
+                        "claimants_en": claimants_en,
+                        "claimants_native": claimants_native,
+                        "population": territory_info.get("Population"),
+                        "query_id": normalize_text(ex.get("QueryID")),
+                        "has_gold": bool(answer),
+                        "eval_protocol": "controller_match_plus_cross_language_consistency",
+                    },
+                }
+            )
+    report = {
+        "raw": raw,
+        "kept": len(rows),
+        "seed": seed,
+        "metric_note": "Geopolitical MCQ benchmark evaluated with controller match rate and cross-language consistency.",
+    }
+    return rows, report
+
+
+def convert_msqad(
+    seed: int = 42,
+    source_root: str = "",
+    model_source: str = "gpt-3.5-turbo-0125",
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    base_root = Path(source_root) if source_root.strip() else Path("data/benchmarks/external/raw/msqad_repo/MSQAD")
+    source_dir = base_root / model_source if base_root.is_dir() and (base_root / model_source).exists() else base_root
+    if not source_dir.exists():
+        raise FileNotFoundError(
+            "MSQAD source directory was not found. Clone the official repo into "
+            "'data/benchmarks/external/raw/msqad_repo/' or pass --msqad-source-root."
+        )
+    topic_files = sorted(source_dir.glob("*.json"))
+    if not topic_files:
+        raise FileNotFoundError(f"No MSQAD JSON files found under {source_dir}")
+
+    rng = random.Random(seed)
+    rows: List[Dict[str, Any]] = []
+    raw = 0
+    for topic_path in topic_files:
+        topic = topic_path.stem
+        topic_slug = _slugify(topic)
+        with topic_path.open("r", encoding="utf-8-sig") as f:
+            examples = json.load(f)
+        if not isinstance(examples, list):
+            continue
+        for idx, ex in enumerate(examples):
+            raw += 1
+            for lang, prefix in MSQAD_LANGUAGE_FIELDS.items():
+                question = normalize_text(ex.get(f"{prefix}_question"))
+                acceptable = normalize_text(ex.get(f"{prefix}_acceptable_response"))
+                non_acceptable = normalize_text(ex.get(f"{prefix}_non-acceptable_response"))
+                if not question or not acceptable or not non_acceptable:
+                    continue
+                options = [
+                    {"kind": "acceptable", "text": acceptable},
+                    {"kind": "non_acceptable", "text": non_acceptable},
+                ]
+                rng.shuffle(options)
+                answer_idx = next(i for i, opt in enumerate(options) if opt["kind"] == "acceptable")
+                rows.append(
+                    {
+                        "id": f"MSQAD_{topic_slug}_{idx}_{lang}",
+                        "dataset": "MSQAD",
+                        "task_type": "ethical_pair_mcq",
+                        "benchmark_family": "bias",
+                        "question": question,
+                        "choices": letter_choices([opt["text"] for opt in options]),
+                        "answer": chr(ord("A") + answer_idx),
+                        "sampling_bucket": f"{lang}:{topic_slug}",
+                        "metadata": {
+                            "language": lang,
+                            "topic": topic,
+                            "title": normalize_text(ex.get("title")),
+                            "subtitle": normalize_text(ex.get("subtitle")),
+                            "news_url": normalize_text(ex.get("news_url")),
+                            "generated_keywords": ex.get("generated_keywords", []),
+                            "eval_protocol": "acceptable_vs_non_acceptable_pair_mcq_proxy",
+                            "source_model": model_source,
+                        },
+                    }
+                )
+    report = {
+        "source_dir": str(source_dir),
+        "topics": len(topic_files),
+        "raw": raw,
+        "kept": len(rows),
+        "seed": seed,
+        "metric_note": (
+            "Converted MSQAD acceptable/non-acceptable response pairs into a 2-way MCQ proxy "
+            "that asks the model to choose the ethically acceptable response."
+        ),
+    }
+    return rows, report
+
+
 def run(args: argparse.Namespace) -> None:
     out_root = Path(args.out_root)
     processed_dir = out_root / "processed"
@@ -487,11 +841,24 @@ def run(args: argparse.Namespace) -> None:
         "socialstigmaqa": convert_socialstigmaqa,
         "truthfulqa": convert_truthfulqa,
         "popqa": convert_popqa,
+        "cbbq": convert_cbbq,
+        "borderlines": convert_borderlines,
+        "msqad": lambda seed=42: convert_msqad(
+            seed=seed,
+            source_root=args.msqad_source_root,
+            model_source=args.msqad_model_source,
+        ),
         "culturalbench_easy": lambda seed=42: convert_culturalbench("easy", seed=seed),
         "culturalbench_hard": lambda seed=42: convert_culturalbench("hard", seed=seed),
         "espanstereo": lambda seed=42: convert_espanstereo(seed=seed, source_path=args.espanstereo_path),
+        "honest": lambda seed=42: convert_honest(
+            seed=seed,
+            subsets=args.honest_subsets,
+            source_root=args.honest_source_root,
+        ),
     }
 
+    failed_datasets: List[str] = []
     for name in args.datasets:
         try:
             rows, report = converters[name](seed=args.seed)
@@ -504,11 +871,20 @@ def run(args: argparse.Namespace) -> None:
             summary["datasets"][name] = {
                 "status": f"failed: {e}",
             }
+            failed_datasets.append(name)
+
+    summary["failed_datasets"] = failed_datasets
+    summary["ok"] = len(failed_datasets) == 0
 
     summary_path = reports_dir / "summary.json"
     with summary_path.open("w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
+    if failed_datasets:
+        raise SystemExit(
+            f"Benchmark preparation failed for: {', '.join(sorted(failed_datasets))}. "
+            f"See {summary_path} for details."
+        )
 
 
 if __name__ == "__main__":
@@ -522,9 +898,13 @@ if __name__ == "__main__":
             "socialstigmaqa",
             "truthfulqa",
             "popqa",
+            "cbbq",
+            "borderlines",
+            "msqad",
             "culturalbench_easy",
             "culturalbench_hard",
             "espanstereo",
+            "honest",
         ],
     )
     parser.add_argument("--out-root", default="data/benchmarks/external")
@@ -533,6 +913,40 @@ if __name__ == "__main__":
         "--espanstereo-path",
         default="",
         help="Optional local CSV/JSON/JSONL path or directory for EspanStereo source data.",
+    )
+    parser.add_argument(
+        "--honest-subsets",
+        nargs="*",
+        default=list(HONEST_DEFAULT_SUBSETS),
+        help=(
+            "Optional HONEST subset list. Defaults to the six multilingual binary-gender subsets. "
+            "Pass 'all' to include the English queer/non-queer subset as well."
+        ),
+    )
+    parser.add_argument(
+        "--honest-source-root",
+        default="",
+        help=(
+            "Optional local HONEST raw source directory or file. "
+            "If omitted, the converter first checks data/benchmarks/external/raw/honest/ "
+            "and then falls back to the upstream raw TSV URLs."
+        ),
+    )
+    parser.add_argument(
+        "--msqad-source-root",
+        default="",
+        help=(
+            "Optional MSQAD source root. By default the converter reads from "
+            "data/benchmarks/external/raw/msqad_repo/MSQAD/."
+        ),
+    )
+    parser.add_argument(
+        "--msqad-model-source",
+        default="gpt-3.5-turbo-0125",
+        help=(
+            "MSQAD model subdirectory to read from under the source root. "
+            "Defaults to the fully populated gpt-3.5-turbo-0125 release."
+        ),
     )
     args = parser.parse_args()
     run(args)
