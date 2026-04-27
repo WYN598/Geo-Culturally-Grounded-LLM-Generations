@@ -1,0 +1,148 @@
+{
+  "search_prediction_integrity": {
+    "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/full_fixed_candidate_rag/search_predictions.jsonl",
+    "total_lines": 38,
+    "nonempty_lines": 38,
+    "parsed_lines": 38,
+    "bad_lines": 0,
+    "bad_line_numbers": [],
+    "expected_n": 38,
+    "is_complete": true,
+    "missing_rows": 0
+  },
+  "search_acc": 0.6842105263157895,
+  "search_eval": {
+    "n": 38,
+    "dataset_metrics": {
+      "BordIRLines-openai-rel_langs": {
+        "task_family": "geopolitical_mcq",
+        "n": 38,
+        "controller_match_rate": 0.7647058823529411,
+        "valid_rate": 1.0,
+        "n_with_gold": 34,
+        "territory_majority_consistency": 0.0,
+        "territory_majority_consistency_micro": 0.0,
+        "cross_language_disagreement_rate": 0.0,
+        "by_language": {
+          "en": {
+            "controller_match_rate": 0.7647058823529411,
+            "valid_rate": 1.0,
+            "n": 38,
+            "n_with_gold": 34
+          }
+        }
+      }
+    }
+  },
+  "search_trace_summary": {
+    "n": 38,
+    "used_evidence_n": 27,
+    "used_evidence_rate": 0.7105263157894737,
+    "stage_counts": {
+      "search_answer_fallback": 11,
+      "search_answer_augmented": 27
+    },
+    "gate_reason_top": [
+      {
+        "reason": "llm_gate_rejected",
+        "count": 8
+      },
+      {
+        "reason": "The evidence provides specific and on-topic information about Chiengi being located in the Luapula Province of Zambia and its administrative status within Zambia. This directly supports the answer to the question.",
+        "count": 1
+      },
+      {
+        "reason": "The retrieved information is either too broad, not specific to Lunchinda-Pweto Province, or discusses border disputes without clear distinction to the specific province in question.",
+        "count": 1
+      },
+      {
+        "reason": "The retrieved information is not specific about the location of the Lunkinda River. It provides general information about Zambia and neighboring countries but does not mention the Lunkinda River or its territorial affiliation.",
+        "count": 1
+      },
+      {
+        "reason": "e1 provides specific and on-topic information that Pweto is in the Democratic Republic of the Congo and is the administrative center of Pweto Territory, directly supporting one of the answer choices.",
+        "count": 1
+      },
+      {
+        "reason": "The evidence specifies that Mbamba Bay is located in western Tanzania and provides additional context about its geographical and administrative location within Tanzania.",
+        "count": 1
+      },
+      {
+        "reason": "e1 provides specific and on-topic information about the Okpara River being a river of Benin and its geographical context, which directly helps distinguish between the answer options.",
+        "count": 1
+      },
+      {
+        "reason": "The retrieved information does not provide any specific details about Sindabezi Island or its territorial status. It only gives general information about Zimbabwe and Zambia.",
+        "count": 1
+      },
+      {
+        "reason": "The evidence provides specific information about the United States' claim to Bajo Nuevo Bank and its status in relation to Colombia, which directly addresses the question.",
+        "count": 1
+      },
+      {
+        "reason": "The evidence provides clear and specific information about the current administration of Navassa Island by the United States, supported by historical context and legal basis.",
+        "count": 1
+      }
+    ]
+  },
+  "search_runtime_status": {
+    "provider": "openai",
+    "requested_features": {
+      "llm_query_rewrite": false,
+      "hyde": false,
+      "llm_relevance": false,
+      "query_feedback_retry": false,
+      "evidence_organization": true,
+      "evidence_gate": true
+    },
+    "effective_features": {
+      "llm_query_rewrite": false,
+      "hyde": false,
+      "llm_relevance": false,
+      "query_feedback_retry": false,
+      "evidence_organization": true,
+      "evidence_gate": true
+    },
+    "strict_feature_checks": true,
+    "rewrite_policy": "auto",
+    "runtime_warnings": []
+  },
+  "search_usage": {
+    "num_calls": 152,
+    "prompt_tokens": 94779,
+    "completion_tokens": 4718,
+    "total_tokens": 99497,
+    "by_stage": {
+      "search_embedding_prerank": {
+        "num_calls": 38,
+        "prompt_tokens": 44045,
+        "completion_tokens": 0,
+        "total_tokens": 44045
+      },
+      "search_evidence_organize": {
+        "num_calls": 38,
+        "prompt_tokens": 26375,
+        "completion_tokens": 2432,
+        "total_tokens": 28807
+      },
+      "search_evidence_gate": {
+        "num_calls": 38,
+        "prompt_tokens": 14568,
+        "completion_tokens": 2210,
+        "total_tokens": 16778
+      },
+      "search_answer_fallback": {
+        "num_calls": 11,
+        "prompt_tokens": 579,
+        "completion_tokens": 22,
+        "total_tokens": 601
+      },
+      "search_answer_augmented": {
+        "num_calls": 27,
+        "prompt_tokens": 9212,
+        "completion_tokens": 54,
+        "total_tokens": 9266
+      }
+    }
+  }
+}

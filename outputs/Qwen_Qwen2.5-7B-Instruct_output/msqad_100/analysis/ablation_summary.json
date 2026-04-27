@@ -1,0 +1,2568 @@
+{
+  "experiment_design": {
+    "goal": "Compare increasingly stronger general RAG designs under fixed model and evaluation data.",
+    "systems": [
+      {
+        "name": "vanilla",
+        "description": "No retrieval baseline."
+      },
+      {
+        "name": "simple_rag",
+        "description": "Raw question search, lexical ranking, direct evidence use.",
+        "retrieval_key": "simple"
+      },
+      {
+        "name": "planning_rag",
+        "description": "Simple natural-language rewrite before search, lexical ranking, direct evidence use.",
+        "retrieval_key": "planning"
+      },
+      {
+        "name": "planning_semantic_rag",
+        "description": "Simple rewrite plus embedding pre-rank and cross-encoder rerank.",
+        "retrieval_key": "planning"
+      },
+      {
+        "name": "planning_semantic_noise_filter",
+        "description": "Simple rewrite plus semantic ranking and source/noise filtering.",
+        "retrieval_key": "planning"
+      },
+      {
+        "name": "full_general_rag",
+        "description": "Full system: simple rewrite, semantic ranking, noise filtering, evidence organization, and gate.",
+        "retrieval_key": "planning"
+      }
+    ],
+    "notes": [
+      "Runs sharing the same retrieval_key reuse the same frozen search cache.",
+      "This keeps retrieval fixed while comparing downstream ranking and evidence-use modules."
+    ]
+  },
+  "run_root": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100",
+  "config": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/configs/config_base.yaml",
+  "eval_path": "data/benchmarks/external/sampled/msqad_100.jsonl",
+  "dataset": "MSQAD",
+  "primary_metric": "acceptable_rate",
+  "primary_metric_label": "Acceptable Choice Rate",
+  "model": {
+    "provider": "openai",
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "temperature": 0.0,
+    "max_tokens": 64
+  },
+  "runs": [
+    {
+      "name": "vanilla",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/vanilla",
+      "params": {
+        "mode": "vanilla"
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/vanilla/vanilla_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "acceptable_rate",
+      "primary_score": 0.95,
+      "dataset_metrics": {
+        "task_family": "ethical_pair_mcq",
+        "n": 100,
+        "accuracy": 0.95,
+        "acceptable_rate": 0.95,
+        "valid_rate": 1.0,
+        "by_language": {
+          "de": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "en": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "es": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 15
+          },
+          "hi": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "ko": {
+            "accuracy": 0.9411764705882353,
+            "acceptable_rate": 0.9411764705882353,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "zh": {
+            "accuracy": 0.7647058823529411,
+            "acceptable_rate": 0.7647058823529411,
+            "valid_rate": 1.0,
+            "n": 17
+          }
+        },
+        "by_topic": {
+          "Arms": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Children's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Crisis and Conflict": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Disability Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Economic Justice and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Environment and Human Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Free Speech": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Health": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "International Justice": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "LGBT Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "Refugees and Migrants": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Rights of Older People": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Technology and Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Terrorism and Counterterrorism": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Torture": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "United Nations": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Women's Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          }
+        }
+      },
+      "used_evidence_n": 0,
+      "used_evidence_rate": 0.0,
+      "metrics": {
+        "vanilla_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/vanilla/vanilla_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "vanilla_acc": 0.95,
+        "vanilla_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "MSQAD": {
+              "task_family": "ethical_pair_mcq",
+              "n": 100,
+              "accuracy": 0.95,
+              "acceptable_rate": 0.95,
+              "valid_rate": 1.0,
+              "by_language": {
+                "de": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "en": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "es": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 15
+                },
+                "hi": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "ko": {
+                  "accuracy": 0.9411764705882353,
+                  "acceptable_rate": 0.9411764705882353,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "zh": {
+                  "accuracy": 0.7647058823529411,
+                  "acceptable_rate": 0.7647058823529411,
+                  "valid_rate": 1.0,
+                  "n": 17
+                }
+              },
+              "by_topic": {
+                "Arms": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Children's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Crisis and Conflict": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Disability Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Economic Justice and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Environment and Human Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Free Speech": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Health": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "International Justice": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "LGBT Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "Refugees and Migrants": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Rights of Older People": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Technology and Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Terrorism and Counterterrorism": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Torture": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "United Nations": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Women's Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                }
+              }
+            }
+          }
+        },
+        "vanilla_usage": {
+          "num_calls": 100,
+          "prompt_tokens": 20251,
+          "completion_tokens": 200,
+          "total_tokens": 20451,
+          "by_stage": {
+            "vanilla_answer": {
+              "num_calls": 100,
+              "prompt_tokens": 20251,
+              "completion_tokens": 200,
+              "total_tokens": 20451
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "simple_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/simple_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": false,
+        "embedding_preranker": "none",
+        "semantic_reranker": "none",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [],
+        "low_quality_url_keywords": []
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/simple_rag/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "acceptable_rate",
+      "primary_score": 0.95,
+      "dataset_metrics": {
+        "task_family": "ethical_pair_mcq",
+        "n": 100,
+        "accuracy": 0.95,
+        "acceptable_rate": 0.95,
+        "valid_rate": 1.0,
+        "by_language": {
+          "de": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "en": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "es": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 15
+          },
+          "hi": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "ko": {
+            "accuracy": 0.8235294117647058,
+            "acceptable_rate": 0.8235294117647058,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "zh": {
+            "accuracy": 0.8823529411764706,
+            "acceptable_rate": 0.8823529411764706,
+            "valid_rate": 1.0,
+            "n": 17
+          }
+        },
+        "by_topic": {
+          "Arms": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Children's Rights": {
+            "accuracy": 0.6666666666666666,
+            "acceptable_rate": 0.6666666666666666,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Crisis and Conflict": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Disability Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Economic Justice and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Environment and Human Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Free Speech": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Health": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "International Justice": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "LGBT Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "Refugees and Migrants": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Rights of Older People": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Technology and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Terrorism and Counterterrorism": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Torture": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "United Nations": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Women's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          }
+        }
+      },
+      "used_evidence_n": 99,
+      "used_evidence_rate": 0.99,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/simple_rag/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.95,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "MSQAD": {
+              "task_family": "ethical_pair_mcq",
+              "n": 100,
+              "accuracy": 0.95,
+              "acceptable_rate": 0.95,
+              "valid_rate": 1.0,
+              "by_language": {
+                "de": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "en": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "es": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 15
+                },
+                "hi": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "ko": {
+                  "accuracy": 0.8235294117647058,
+                  "acceptable_rate": 0.8235294117647058,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "zh": {
+                  "accuracy": 0.8823529411764706,
+                  "acceptable_rate": 0.8823529411764706,
+                  "valid_rate": 1.0,
+                  "n": 17
+                }
+              },
+              "by_topic": {
+                "Arms": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Children's Rights": {
+                  "accuracy": 0.6666666666666666,
+                  "acceptable_rate": 0.6666666666666666,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Crisis and Conflict": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Disability Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Economic Justice and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Environment and Human Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Free Speech": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Health": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "International Justice": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "LGBT Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "Refugees and Migrants": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Rights of Older People": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Technology and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Terrorism and Counterterrorism": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Torture": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "United Nations": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Women's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 99,
+          "used_evidence_rate": 0.99,
+          "stage_counts": {
+            "search_answer_augmented": 99,
+            "search_answer_fallback": 1
+          },
+          "gate_reason_top": [
+            {
+              "reason": "no_evidence",
+              "count": 1
+            }
+          ]
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 100,
+          "prompt_tokens": 72745,
+          "completion_tokens": 200,
+          "total_tokens": 72945,
+          "by_stage": {
+            "search_answer_augmented": {
+              "num_calls": 99,
+              "prompt_tokens": 72400,
+              "completion_tokens": 198,
+              "total_tokens": 72598
+            },
+            "search_answer_fallback": {
+              "num_calls": 1,
+              "prompt_tokens": 345,
+              "completion_tokens": 2,
+              "total_tokens": 347
+            }
+          }
+        }
+      },
+      "description": "Raw question search, lexical ranking, direct evidence use.",
+      "retrieval_key": "simple",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/caches/simple.jsonl"
+    },
+    {
+      "name": "planning_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": true,
+        "embedding_preranker": "none",
+        "semantic_reranker": "none",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [],
+        "low_quality_url_keywords": []
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_rag/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "acceptable_rate",
+      "primary_score": 0.95,
+      "dataset_metrics": {
+        "task_family": "ethical_pair_mcq",
+        "n": 100,
+        "accuracy": 0.95,
+        "acceptable_rate": 0.95,
+        "valid_rate": 1.0,
+        "by_language": {
+          "de": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "en": {
+            "accuracy": 0.9411764705882353,
+            "acceptable_rate": 0.9411764705882353,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "es": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 15
+          },
+          "hi": {
+            "accuracy": 0.9411764705882353,
+            "acceptable_rate": 0.9411764705882353,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "ko": {
+            "accuracy": 0.9411764705882353,
+            "acceptable_rate": 0.9411764705882353,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "zh": {
+            "accuracy": 0.8823529411764706,
+            "acceptable_rate": 0.8823529411764706,
+            "valid_rate": 1.0,
+            "n": 17
+          }
+        },
+        "by_topic": {
+          "Arms": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Children's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Crisis and Conflict": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Disability Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Economic Justice and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Environment and Human Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Free Speech": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Health": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "International Justice": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "LGBT Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "Refugees and Migrants": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Rights of Older People": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Technology and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Terrorism and Counterterrorism": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Torture": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "United Nations": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Women's Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          }
+        }
+      },
+      "used_evidence_n": 100,
+      "used_evidence_rate": 1.0,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_rag/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.95,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "MSQAD": {
+              "task_family": "ethical_pair_mcq",
+              "n": 100,
+              "accuracy": 0.95,
+              "acceptable_rate": 0.95,
+              "valid_rate": 1.0,
+              "by_language": {
+                "de": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "en": {
+                  "accuracy": 0.9411764705882353,
+                  "acceptable_rate": 0.9411764705882353,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "es": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 15
+                },
+                "hi": {
+                  "accuracy": 0.9411764705882353,
+                  "acceptable_rate": 0.9411764705882353,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "ko": {
+                  "accuracy": 0.9411764705882353,
+                  "acceptable_rate": 0.9411764705882353,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "zh": {
+                  "accuracy": 0.8823529411764706,
+                  "acceptable_rate": 0.8823529411764706,
+                  "valid_rate": 1.0,
+                  "n": 17
+                }
+              },
+              "by_topic": {
+                "Arms": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Children's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Crisis and Conflict": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Disability Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Economic Justice and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Environment and Human Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Free Speech": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Health": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "International Justice": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "LGBT Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "Refugees and Migrants": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Rights of Older People": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Technology and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Terrorism and Counterterrorism": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Torture": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "United Nations": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Women's Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 100,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 100
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 100,
+          "prompt_tokens": 53668,
+          "completion_tokens": 200,
+          "total_tokens": 53868,
+          "by_stage": {
+            "search_answer_augmented": {
+              "num_calls": 100,
+              "prompt_tokens": 53668,
+              "completion_tokens": 200,
+              "total_tokens": 53868
+            }
+          }
+        }
+      },
+      "description": "Simple natural-language rewrite before search, lexical ranking, direct evidence use.",
+      "retrieval_key": "planning",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/caches/planning.jsonl"
+    },
+    {
+      "name": "planning_semantic_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_semantic_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": true,
+        "embedding_preranker": "openai",
+        "semantic_reranker": "cross_encoder",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [],
+        "low_quality_url_keywords": []
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_semantic_rag/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "acceptable_rate",
+      "primary_score": 0.94,
+      "dataset_metrics": {
+        "task_family": "ethical_pair_mcq",
+        "n": 100,
+        "accuracy": 0.94,
+        "acceptable_rate": 0.94,
+        "valid_rate": 1.0,
+        "by_language": {
+          "de": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "en": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "es": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 15
+          },
+          "hi": {
+            "accuracy": 0.9411764705882353,
+            "acceptable_rate": 0.9411764705882353,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "ko": {
+            "accuracy": 0.9411764705882353,
+            "acceptable_rate": 0.9411764705882353,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "zh": {
+            "accuracy": 0.7647058823529411,
+            "acceptable_rate": 0.7647058823529411,
+            "valid_rate": 1.0,
+            "n": 17
+          }
+        },
+        "by_topic": {
+          "Arms": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Children's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Crisis and Conflict": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Disability Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Economic Justice and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Environment and Human Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Free Speech": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Health": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "International Justice": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "LGBT Rights": {
+            "accuracy": 0.8,
+            "acceptable_rate": 0.8,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "Refugees and Migrants": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Rights of Older People": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Technology and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Terrorism and Counterterrorism": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Torture": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "United Nations": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Women's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          }
+        }
+      },
+      "used_evidence_n": 100,
+      "used_evidence_rate": 1.0,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_semantic_rag/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.94,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "MSQAD": {
+              "task_family": "ethical_pair_mcq",
+              "n": 100,
+              "accuracy": 0.94,
+              "acceptable_rate": 0.94,
+              "valid_rate": 1.0,
+              "by_language": {
+                "de": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "en": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "es": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 15
+                },
+                "hi": {
+                  "accuracy": 0.9411764705882353,
+                  "acceptable_rate": 0.9411764705882353,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "ko": {
+                  "accuracy": 0.9411764705882353,
+                  "acceptable_rate": 0.9411764705882353,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "zh": {
+                  "accuracy": 0.7647058823529411,
+                  "acceptable_rate": 0.7647058823529411,
+                  "valid_rate": 1.0,
+                  "n": 17
+                }
+              },
+              "by_topic": {
+                "Arms": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Children's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Crisis and Conflict": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Disability Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Economic Justice and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Environment and Human Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Free Speech": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Health": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "International Justice": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "LGBT Rights": {
+                  "accuracy": 0.8,
+                  "acceptable_rate": 0.8,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "Refugees and Migrants": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Rights of Older People": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Technology and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Terrorism and Counterterrorism": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Torture": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "United Nations": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Women's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 100,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 100
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 200,
+          "prompt_tokens": 871912,
+          "completion_tokens": 200,
+          "total_tokens": 872112,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 100,
+              "prompt_tokens": 818830,
+              "completion_tokens": 0,
+              "total_tokens": 818830
+            },
+            "search_answer_augmented": {
+              "num_calls": 100,
+              "prompt_tokens": 53082,
+              "completion_tokens": 200,
+              "total_tokens": 53282
+            }
+          }
+        }
+      },
+      "description": "Simple rewrite plus embedding pre-rank and cross-encoder rerank.",
+      "retrieval_key": "planning",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/caches/planning.jsonl"
+    },
+    {
+      "name": "planning_semantic_noise_filter",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_semantic_noise_filter",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": true,
+        "embedding_preranker": "openai",
+        "semantic_reranker": "cross_encoder",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [
+          "brainly.com",
+          "classace.io",
+          "coursehero.com",
+          "gauthmath.com",
+          "gauth.com",
+          "quizlet.com",
+          "studocu.com",
+          "bartleby.com",
+          "answers.com",
+          "enotes.com"
+        ],
+        "low_quality_url_keywords": [
+          "flashcard",
+          "flash-card",
+          "homework",
+          "worksheet",
+          "multiple-choice",
+          "quizlet",
+          "expert-verified",
+          "answer-key",
+          "answer/",
+          "/author/",
+          "annotated-bib",
+          "annotated-bibliography"
+        ]
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_semantic_noise_filter/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "acceptable_rate",
+      "primary_score": 0.94,
+      "dataset_metrics": {
+        "task_family": "ethical_pair_mcq",
+        "n": 100,
+        "accuracy": 0.94,
+        "acceptable_rate": 0.94,
+        "valid_rate": 1.0,
+        "by_language": {
+          "de": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "en": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "es": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 15
+          },
+          "hi": {
+            "accuracy": 0.9411764705882353,
+            "acceptable_rate": 0.9411764705882353,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "ko": {
+            "accuracy": 0.9411764705882353,
+            "acceptable_rate": 0.9411764705882353,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "zh": {
+            "accuracy": 0.7647058823529411,
+            "acceptable_rate": 0.7647058823529411,
+            "valid_rate": 1.0,
+            "n": 17
+          }
+        },
+        "by_topic": {
+          "Arms": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Children's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Crisis and Conflict": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Disability Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Economic Justice and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Environment and Human Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Free Speech": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Health": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "International Justice": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "LGBT Rights": {
+            "accuracy": 0.8,
+            "acceptable_rate": 0.8,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "Refugees and Migrants": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Rights of Older People": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Technology and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Terrorism and Counterterrorism": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Torture": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "United Nations": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Women's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          }
+        }
+      },
+      "used_evidence_n": 100,
+      "used_evidence_rate": 1.0,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/planning_semantic_noise_filter/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.94,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "MSQAD": {
+              "task_family": "ethical_pair_mcq",
+              "n": 100,
+              "accuracy": 0.94,
+              "acceptable_rate": 0.94,
+              "valid_rate": 1.0,
+              "by_language": {
+                "de": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "en": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "es": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 15
+                },
+                "hi": {
+                  "accuracy": 0.9411764705882353,
+                  "acceptable_rate": 0.9411764705882353,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "ko": {
+                  "accuracy": 0.9411764705882353,
+                  "acceptable_rate": 0.9411764705882353,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "zh": {
+                  "accuracy": 0.7647058823529411,
+                  "acceptable_rate": 0.7647058823529411,
+                  "valid_rate": 1.0,
+                  "n": 17
+                }
+              },
+              "by_topic": {
+                "Arms": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Children's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Crisis and Conflict": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Disability Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Economic Justice and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Environment and Human Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Free Speech": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Health": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "International Justice": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "LGBT Rights": {
+                  "accuracy": 0.8,
+                  "acceptable_rate": 0.8,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "Refugees and Migrants": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Rights of Older People": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Technology and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Terrorism and Counterterrorism": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Torture": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "United Nations": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Women's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 100,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 100
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 200,
+          "prompt_tokens": 871912,
+          "completion_tokens": 200,
+          "total_tokens": 872112,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 100,
+              "prompt_tokens": 818830,
+              "completion_tokens": 0,
+              "total_tokens": 818830
+            },
+            "search_answer_augmented": {
+              "num_calls": 100,
+              "prompt_tokens": 53082,
+              "completion_tokens": 200,
+              "total_tokens": 53282
+            }
+          }
+        }
+      },
+      "description": "Simple rewrite plus semantic ranking and source/noise filtering.",
+      "retrieval_key": "planning",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/caches/planning.jsonl"
+    },
+    {
+      "name": "full_general_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/full_general_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": true,
+        "embedding_preranker": "openai",
+        "embedding_model": "text-embedding-3-small",
+        "embedding_preranker_top_m": 36,
+        "embedding_preranker_weight": 0.15,
+        "semantic_reranker": "cross_encoder",
+        "semantic_reranker_model": "cross-encoder/ms-marco-MiniLM-L-12-v2",
+        "semantic_reranker_top_m": 24,
+        "semantic_reranker_weight": 0.2,
+        "semantic_reranker_device": "cpu",
+        "semantic_reranker_batch_size": 32,
+        "enable_evidence_organization": true,
+        "enable_evidence_gate": true,
+        "min_evidence_score": 0.16,
+        "summary_max_items": 4,
+        "low_quality_domains": [
+          "brainly.com",
+          "classace.io",
+          "coursehero.com",
+          "gauthmath.com",
+          "gauth.com",
+          "quizlet.com",
+          "studocu.com",
+          "bartleby.com",
+          "answers.com",
+          "enotes.com"
+        ],
+        "low_quality_url_keywords": [
+          "flashcard",
+          "flash-card",
+          "homework",
+          "worksheet",
+          "multiple-choice",
+          "quizlet",
+          "expert-verified",
+          "answer-key",
+          "answer/",
+          "/author/",
+          "annotated-bib",
+          "annotated-bibliography"
+        ]
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/full_general_rag/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "acceptable_rate",
+      "primary_score": 0.92,
+      "dataset_metrics": {
+        "task_family": "ethical_pair_mcq",
+        "n": 100,
+        "accuracy": 0.92,
+        "acceptable_rate": 0.92,
+        "valid_rate": 1.0,
+        "by_language": {
+          "de": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "en": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "es": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 15
+          },
+          "hi": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "ko": {
+            "accuracy": 0.8823529411764706,
+            "acceptable_rate": 0.8823529411764706,
+            "valid_rate": 1.0,
+            "n": 17
+          },
+          "zh": {
+            "accuracy": 0.6470588235294118,
+            "acceptable_rate": 0.6470588235294118,
+            "valid_rate": 1.0,
+            "n": 17
+          }
+        },
+        "by_topic": {
+          "Arms": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Children's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Crisis and Conflict": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Disability Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Economic Justice and Rights": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Environment and Human Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Free Speech": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Health": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "International Justice": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "LGBT Rights": {
+            "accuracy": 0.8,
+            "acceptable_rate": 0.8,
+            "valid_rate": 1.0,
+            "n": 5
+          },
+          "Refugees and Migrants": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Rights of Older People": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Technology and Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Terrorism and Counterterrorism": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Torture": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "United Nations": {
+            "accuracy": 1.0,
+            "acceptable_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 6
+          },
+          "Women's Rights": {
+            "accuracy": 0.8333333333333334,
+            "acceptable_rate": 0.8333333333333334,
+            "valid_rate": 1.0,
+            "n": 6
+          }
+        }
+      },
+      "used_evidence_n": 13,
+      "used_evidence_rate": 0.13,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/runs/full_general_rag/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.92,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "MSQAD": {
+              "task_family": "ethical_pair_mcq",
+              "n": 100,
+              "accuracy": 0.92,
+              "acceptable_rate": 0.92,
+              "valid_rate": 1.0,
+              "by_language": {
+                "de": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "en": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "es": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 15
+                },
+                "hi": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "ko": {
+                  "accuracy": 0.8823529411764706,
+                  "acceptable_rate": 0.8823529411764706,
+                  "valid_rate": 1.0,
+                  "n": 17
+                },
+                "zh": {
+                  "accuracy": 0.6470588235294118,
+                  "acceptable_rate": 0.6470588235294118,
+                  "valid_rate": 1.0,
+                  "n": 17
+                }
+              },
+              "by_topic": {
+                "Arms": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Children's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Crisis and Conflict": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Disability Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Economic Justice and Rights": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Environment and Human Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Free Speech": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Health": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "International Justice": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "LGBT Rights": {
+                  "accuracy": 0.8,
+                  "acceptable_rate": 0.8,
+                  "valid_rate": 1.0,
+                  "n": 5
+                },
+                "Refugees and Migrants": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Rights of Older People": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Technology and Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Terrorism and Counterterrorism": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Torture": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "United Nations": {
+                  "accuracy": 1.0,
+                  "acceptable_rate": 1.0,
+                  "valid_rate": 1.0,
+                  "n": 6
+                },
+                "Women's Rights": {
+                  "accuracy": 0.8333333333333334,
+                  "acceptable_rate": 0.8333333333333334,
+                  "valid_rate": 1.0,
+                  "n": 6
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 13,
+          "used_evidence_rate": 0.13,
+          "stage_counts": {
+            "search_answer_augmented": 13,
+            "search_answer_fallback": 87
+          },
+          "gate_reason_top": [
+            {
+              "reason": "llm_gate_rejected",
+              "count": 56
+            },
+            {
+              "reason": "The retrieved information supports the need for European states to cooperate with inquiries into secret CIA prisons and emphasizes the importance of upholding international laws and standards, which aligns with option A.",
+              "count": 1
+            },
+            {
+              "reason": "证据内容模糊且不具体，未能直接支持或区分答案选项。",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information provides specific details about the transfer of ISIS suspects to Iraq, including security risks and human rights concerns, which are directly relevant to the question.",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information is not specific to Jordan, does not mention public figures supporting a republic or criticizing the monarchy, and is not directly related to freedom of expression in Jordan.",
+              "count": 1
+            },
+            {
+              "reason": "提供的信息与集束弹药是否应被视为战争罪的具体关联性不强，且未直接提及国际法对此类武器使用的明确立场。",
+              "count": 1
+            },
+            {
+              "reason": "提供的信息与问题无关，未提及关于联合国人权理事会处理偏见和无效指控的具体措施。",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information is either unrelated, too broad, or does not directly address the specific challenges faced by white children in education. It lacks specificity and direct relevance to the question.",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information is generic and does not specifically address the context of conflict zones like Yemen. It discusses general risks associated with the storage of hazardous substances but lacks specificity regarding the question's context.",
+              "count": 1
+            },
+            {
+              "reason": "提供的信息与问题无关，未涉及对青少年以成年人身份审判的伦理讨论。",
+              "count": 1
+            }
+          ]
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": true,
+            "evidence_gate": true
+          },
+          "effective_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": true,
+            "evidence_gate": true
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 400,
+          "prompt_tokens": 1010345,
+          "completion_tokens": 12715,
+          "total_tokens": 1023060,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 100,
+              "prompt_tokens": 818830,
+              "completion_tokens": 0,
+              "total_tokens": 818830
+            },
+            "search_evidence_organize": {
+              "num_calls": 100,
+              "prompt_tokens": 108838,
+              "completion_tokens": 6400,
+              "total_tokens": 115238
+            },
+            "search_evidence_gate": {
+              "num_calls": 100,
+              "prompt_tokens": 57598,
+              "completion_tokens": 6115,
+              "total_tokens": 63713
+            },
+            "search_answer_augmented": {
+              "num_calls": 13,
+              "prompt_tokens": 6935,
+              "completion_tokens": 26,
+              "total_tokens": 6961
+            },
+            "search_answer_fallback": {
+              "num_calls": 87,
+              "prompt_tokens": 18144,
+              "completion_tokens": 174,
+              "total_tokens": 18318
+            }
+          }
+        }
+      },
+      "description": "Full system: simple rewrite, semantic ranking, noise filtering, evidence organization, and gate.",
+      "retrieval_key": "planning",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/msqad_100/caches/planning.jsonl"
+    }
+  ]
+}

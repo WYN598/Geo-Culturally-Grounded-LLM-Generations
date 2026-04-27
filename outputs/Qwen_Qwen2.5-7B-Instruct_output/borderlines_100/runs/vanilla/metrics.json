@@ -1,0 +1,339 @@
+{
+  "vanilla_prediction_integrity": {
+    "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/borderlines_100/runs/vanilla/vanilla_predictions.jsonl",
+    "total_lines": 100,
+    "nonempty_lines": 100,
+    "parsed_lines": 100,
+    "bad_lines": 0,
+    "bad_line_numbers": [],
+    "expected_n": 100,
+    "is_complete": true,
+    "missing_rows": 0
+  },
+  "vanilla_acc": 0.42,
+  "vanilla_eval": {
+    "n": 100,
+    "dataset_metrics": {
+      "BorderLines": {
+        "task_family": "geopolitical_mcq",
+        "n": 100,
+        "controller_match_rate": 0.6666666666666666,
+        "valid_rate": 1.0,
+        "n_with_gold": 63,
+        "territory_majority_consistency": 0.5833333333333334,
+        "territory_majority_consistency_micro": 0.5757575757575758,
+        "cross_language_disagreement_rate": 0.4242424242424242,
+        "by_language": {
+          "ar": {
+            "controller_match_rate": 0.3333333333333333,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 3
+          },
+          "az": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 0
+          },
+          "bn": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "bs": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 1
+          },
+          "da": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "el": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "en": {
+            "controller_match_rate": 0.7142857142857143,
+            "valid_rate": 1.0,
+            "n": 8,
+            "n_with_gold": 7
+          },
+          "es": {
+            "controller_match_rate": 0.5,
+            "valid_rate": 1.0,
+            "n": 5,
+            "n_with_gold": 4
+          },
+          "fa": {
+            "controller_match_rate": 0.3333333333333333,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 3
+          },
+          "fr": {
+            "controller_match_rate": 0.6666666666666666,
+            "valid_rate": 1.0,
+            "n": 4,
+            "n_with_gold": 3
+          },
+          "hi": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 2
+          },
+          "hr": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "ht": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "hy": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 4,
+            "n_with_gold": 0
+          },
+          "id": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 1
+          },
+          "is": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "it": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "iw": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "ja": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 2
+          },
+          "ka": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "km": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 2
+          },
+          "ko": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 2
+          },
+          "ky": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 1
+          },
+          "lo": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "mg": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "mn": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "ms": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 0
+          },
+          "my": {
+            "controller_match_rate": 0.6666666666666666,
+            "valid_rate": 1.0,
+            "n": 4,
+            "n_with_gold": 3
+          },
+          "ne": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 2
+          },
+          "nl": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "pt": {
+            "controller_match_rate": 0.6666666666666666,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 3
+          },
+          "ru": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 1
+          },
+          "sl": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "sn": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "so": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "sq": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "sr": {
+            "controller_match_rate": 0.5,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 2
+          },
+          "sw": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 1
+          },
+          "tg": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 1
+          },
+          "th": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "ti": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "tl": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 2
+          },
+          "tr": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 1
+          },
+          "uk": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 0
+          },
+          "ur": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 3,
+            "n_with_gold": 0
+          },
+          "uz": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "vi": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 1,
+            "n_with_gold": 1
+          },
+          "zhs": {
+            "controller_match_rate": 0.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 1
+          },
+          "zht": {
+            "controller_match_rate": 1.0,
+            "valid_rate": 1.0,
+            "n": 2,
+            "n_with_gold": 2
+          }
+        }
+      }
+    }
+  },
+  "vanilla_usage": {
+    "num_calls": 100,
+    "prompt_tokens": 7980,
+    "completion_tokens": 200,
+    "total_tokens": 8180,
+    "by_stage": {
+      "vanilla_answer": {
+        "num_calls": 100,
+        "prompt_tokens": 7980,
+        "completion_tokens": 200,
+        "total_tokens": 8180
+      }
+    }
+  }
+}

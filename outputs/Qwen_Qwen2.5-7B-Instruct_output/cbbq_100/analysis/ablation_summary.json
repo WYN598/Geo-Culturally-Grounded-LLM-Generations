@@ -1,0 +1,864 @@
+{
+  "experiment_design": {
+    "goal": "Compare increasingly stronger general RAG designs under fixed model and evaluation data.",
+    "systems": [
+      {
+        "name": "vanilla",
+        "description": "No retrieval baseline."
+      },
+      {
+        "name": "simple_rag",
+        "description": "Raw question search, lexical ranking, direct evidence use.",
+        "retrieval_key": "simple"
+      },
+      {
+        "name": "planning_rag",
+        "description": "Simple natural-language rewrite before search, lexical ranking, direct evidence use.",
+        "retrieval_key": "planning"
+      },
+      {
+        "name": "planning_semantic_rag",
+        "description": "Simple rewrite plus embedding pre-rank and cross-encoder rerank.",
+        "retrieval_key": "planning"
+      },
+      {
+        "name": "planning_semantic_noise_filter",
+        "description": "Simple rewrite plus semantic ranking and source/noise filtering.",
+        "retrieval_key": "planning"
+      },
+      {
+        "name": "full_general_rag",
+        "description": "Full system: simple rewrite, semantic ranking, noise filtering, evidence organization, and gate.",
+        "retrieval_key": "planning"
+      }
+    ],
+    "notes": [
+      "Runs sharing the same retrieval_key reuse the same frozen search cache.",
+      "This keeps retrieval fixed while comparing downstream ranking and evidence-use modules."
+    ]
+  },
+  "run_root": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100",
+  "config": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/configs/config_base.yaml",
+  "eval_path": "data/benchmarks/external/sampled/cbbq_100.jsonl",
+  "dataset": "CBBQ",
+  "primary_metric": "accuracy",
+  "primary_metric_label": "Accuracy",
+  "model": {
+    "provider": "openai",
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "temperature": 0.0,
+    "max_tokens": 64
+  },
+  "runs": [
+    {
+      "name": "vanilla",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/vanilla",
+      "params": {
+        "mode": "vanilla"
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/vanilla/vanilla_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "accuracy",
+      "primary_score": 0.63,
+      "dataset_metrics": {
+        "task_family": "mcq",
+        "accuracy": 0.63,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      },
+      "used_evidence_n": 0,
+      "used_evidence_rate": 0.0,
+      "metrics": {
+        "vanilla_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/vanilla/vanilla_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "vanilla_acc": 0.63,
+        "vanilla_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "CBBQ": {
+              "task_family": "mcq",
+              "accuracy": 0.63,
+              "valid_rate": 1.0,
+              "invalid_rate": 0.0,
+              "n": 100
+            }
+          }
+        },
+        "vanilla_usage": {
+          "num_calls": 100,
+          "prompt_tokens": 11558,
+          "completion_tokens": 200,
+          "total_tokens": 11758,
+          "by_stage": {
+            "vanilla_answer": {
+              "num_calls": 100,
+              "prompt_tokens": 11558,
+              "completion_tokens": 200,
+              "total_tokens": 11758
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "simple_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/simple_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": false,
+        "embedding_preranker": "none",
+        "semantic_reranker": "none",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [],
+        "low_quality_url_keywords": []
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/simple_rag/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "accuracy",
+      "primary_score": 0.64,
+      "dataset_metrics": {
+        "task_family": "mcq",
+        "accuracy": 0.64,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      },
+      "used_evidence_n": 98,
+      "used_evidence_rate": 0.98,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/simple_rag/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.64,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "CBBQ": {
+              "task_family": "mcq",
+              "accuracy": 0.64,
+              "valid_rate": 1.0,
+              "invalid_rate": 0.0,
+              "n": 100
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 98,
+          "used_evidence_rate": 0.98,
+          "stage_counts": {
+            "search_answer_augmented": 98,
+            "search_answer_fallback": 2
+          },
+          "gate_reason_top": [
+            {
+              "reason": "no_evidence",
+              "count": 2
+            }
+          ]
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 100,
+          "prompt_tokens": 76688,
+          "completion_tokens": 200,
+          "total_tokens": 76888,
+          "by_stage": {
+            "search_answer_augmented": {
+              "num_calls": 98,
+              "prompt_tokens": 76428,
+              "completion_tokens": 196,
+              "total_tokens": 76624
+            },
+            "search_answer_fallback": {
+              "num_calls": 2,
+              "prompt_tokens": 260,
+              "completion_tokens": 4,
+              "total_tokens": 264
+            }
+          }
+        }
+      },
+      "description": "Raw question search, lexical ranking, direct evidence use.",
+      "retrieval_key": "simple",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/caches/simple.jsonl"
+    },
+    {
+      "name": "planning_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": true,
+        "embedding_preranker": "none",
+        "semantic_reranker": "none",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [],
+        "low_quality_url_keywords": []
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_rag/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "accuracy",
+      "primary_score": 0.65,
+      "dataset_metrics": {
+        "task_family": "mcq",
+        "accuracy": 0.65,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      },
+      "used_evidence_n": 100,
+      "used_evidence_rate": 1.0,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_rag/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.65,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "CBBQ": {
+              "task_family": "mcq",
+              "accuracy": 0.65,
+              "valid_rate": 1.0,
+              "invalid_rate": 0.0,
+              "n": 100
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 100,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 100
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 100,
+          "prompt_tokens": 73653,
+          "completion_tokens": 200,
+          "total_tokens": 73853,
+          "by_stage": {
+            "search_answer_augmented": {
+              "num_calls": 100,
+              "prompt_tokens": 73653,
+              "completion_tokens": 200,
+              "total_tokens": 73853
+            }
+          }
+        }
+      },
+      "description": "Simple natural-language rewrite before search, lexical ranking, direct evidence use.",
+      "retrieval_key": "planning",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/caches/planning.jsonl"
+    },
+    {
+      "name": "planning_semantic_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_semantic_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": true,
+        "embedding_preranker": "openai",
+        "semantic_reranker": "cross_encoder",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [],
+        "low_quality_url_keywords": []
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_semantic_rag/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "accuracy",
+      "primary_score": 0.68,
+      "dataset_metrics": {
+        "task_family": "mcq",
+        "accuracy": 0.68,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      },
+      "used_evidence_n": 100,
+      "used_evidence_rate": 1.0,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_semantic_rag/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.68,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "CBBQ": {
+              "task_family": "mcq",
+              "accuracy": 0.68,
+              "valid_rate": 1.0,
+              "invalid_rate": 0.0,
+              "n": 100
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 100,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 100
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 200,
+          "prompt_tokens": 2059395,
+          "completion_tokens": 200,
+          "total_tokens": 2059595,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 100,
+              "prompt_tokens": 1982393,
+              "completion_tokens": 0,
+              "total_tokens": 1982393
+            },
+            "search_answer_augmented": {
+              "num_calls": 100,
+              "prompt_tokens": 77002,
+              "completion_tokens": 200,
+              "total_tokens": 77202
+            }
+          }
+        }
+      },
+      "description": "Simple rewrite plus embedding pre-rank and cross-encoder rerank.",
+      "retrieval_key": "planning",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/caches/planning.jsonl"
+    },
+    {
+      "name": "planning_semantic_noise_filter",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_semantic_noise_filter",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": true,
+        "embedding_preranker": "openai",
+        "semantic_reranker": "cross_encoder",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [
+          "brainly.com",
+          "classace.io",
+          "coursehero.com",
+          "gauthmath.com",
+          "gauth.com",
+          "quizlet.com",
+          "studocu.com",
+          "bartleby.com",
+          "answers.com",
+          "enotes.com"
+        ],
+        "low_quality_url_keywords": [
+          "flashcard",
+          "flash-card",
+          "homework",
+          "worksheet",
+          "multiple-choice",
+          "quizlet",
+          "expert-verified",
+          "answer-key",
+          "answer/",
+          "/author/",
+          "annotated-bib",
+          "annotated-bibliography"
+        ]
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_semantic_noise_filter/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "accuracy",
+      "primary_score": 0.68,
+      "dataset_metrics": {
+        "task_family": "mcq",
+        "accuracy": 0.68,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      },
+      "used_evidence_n": 100,
+      "used_evidence_rate": 1.0,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/planning_semantic_noise_filter/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.68,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "CBBQ": {
+              "task_family": "mcq",
+              "accuracy": 0.68,
+              "valid_rate": 1.0,
+              "invalid_rate": 0.0,
+              "n": 100
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 100,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 100
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 200,
+          "prompt_tokens": 2057787,
+          "completion_tokens": 200,
+          "total_tokens": 2057987,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 100,
+              "prompt_tokens": 1980597,
+              "completion_tokens": 0,
+              "total_tokens": 1980597
+            },
+            "search_answer_augmented": {
+              "num_calls": 100,
+              "prompt_tokens": 77190,
+              "completion_tokens": 200,
+              "total_tokens": 77390
+            }
+          }
+        }
+      },
+      "description": "Simple rewrite plus semantic ranking and source/noise filtering.",
+      "retrieval_key": "planning",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/caches/planning.jsonl"
+    },
+    {
+      "name": "full_general_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/full_general_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "llm_relevance": false,
+        "domain_priors": {},
+        "strict_feature_checks": true,
+        "llm_query_rewrite": true,
+        "embedding_preranker": "openai",
+        "embedding_model": "text-embedding-3-small",
+        "embedding_preranker_top_m": 36,
+        "embedding_preranker_weight": 0.15,
+        "semantic_reranker": "cross_encoder",
+        "semantic_reranker_model": "cross-encoder/ms-marco-MiniLM-L-12-v2",
+        "semantic_reranker_top_m": 24,
+        "semantic_reranker_weight": 0.2,
+        "semantic_reranker_device": "cpu",
+        "semantic_reranker_batch_size": 32,
+        "enable_evidence_organization": true,
+        "enable_evidence_gate": true,
+        "min_evidence_score": 0.16,
+        "summary_max_items": 4,
+        "low_quality_domains": [
+          "brainly.com",
+          "classace.io",
+          "coursehero.com",
+          "gauthmath.com",
+          "gauth.com",
+          "quizlet.com",
+          "studocu.com",
+          "bartleby.com",
+          "answers.com",
+          "enotes.com"
+        ],
+        "low_quality_url_keywords": [
+          "flashcard",
+          "flash-card",
+          "homework",
+          "worksheet",
+          "multiple-choice",
+          "quizlet",
+          "expert-verified",
+          "answer-key",
+          "answer/",
+          "/author/",
+          "annotated-bib",
+          "annotated-bibliography"
+        ]
+      },
+      "n": 100,
+      "expected_n": 100,
+      "parsed_n": 100,
+      "bad_rows": 0,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/full_general_rag/search_predictions.jsonl",
+        "total_lines": 100,
+        "nonempty_lines": 100,
+        "parsed_lines": 100,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 100,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "primary_metric": "accuracy",
+      "primary_score": 0.63,
+      "dataset_metrics": {
+        "task_family": "mcq",
+        "accuracy": 0.63,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      },
+      "used_evidence_n": 1,
+      "used_evidence_rate": 0.01,
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/full_general_rag/search_predictions.jsonl",
+          "total_lines": 100,
+          "nonempty_lines": 100,
+          "parsed_lines": 100,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 100,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.63,
+        "search_eval": {
+          "n": 100,
+          "dataset_metrics": {
+            "CBBQ": {
+              "task_family": "mcq",
+              "accuracy": 0.63,
+              "valid_rate": 1.0,
+              "invalid_rate": 0.0,
+              "n": 100
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 100,
+          "used_evidence_n": 1,
+          "used_evidence_rate": 0.01,
+          "stage_counts": {
+            "search_answer_fallback": 99,
+            "search_answer_augmented": 1
+          },
+          "gate_reason_top": [
+            {
+              "reason": "llm_gate_rejected",
+              "count": 14
+            },
+            {
+              "reason": "提供的信息与问题无关，且包含大量无关和低质量内容。",
+              "count": 2
+            },
+            {
+              "reason": "检索到的信息与问题无关，均为无关内容。",
+              "count": 1
+            },
+            {
+              "reason": "提供的信息与问题核心不直接相关，主要讨论的是农村学生在高考中的表现及教育公平问题，而非具体到转学申请的成功率。",
+              "count": 1
+            },
+            {
+              "reason": "提供的信息与问题无关，未提及爱尔兰人或厄瓜多尔人的酒吧出勤情况。",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information is not specific to the question and does not provide clear evidence to distinguish between the two options regarding employee willingness to join.",
+              "count": 1
+            },
+            {
+              "reason": "提供的信息与问题无关，未提及家长参与孩子学习的情况。",
+              "count": 1
+            },
+            {
+              "reason": "提供的信息与具体情境无关，且没有直接支持任何特定人物的情感状态。",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information is not specific, on-topic, or directly relevant to the decision-making process for choosing between the two applicants based on their experience and skills.",
+              "count": 1
+            },
+            {
+              "reason": "提供的信息主要讨论老年人和年轻人消费观的变化趋势，但没有具体提及哪一方更追求物质上的享受。",
+              "count": 1
+            }
+          ]
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": true,
+            "evidence_gate": true
+          },
+          "effective_features": {
+            "llm_query_rewrite": true,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": true,
+            "evidence_gate": true
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 400,
+          "prompt_tokens": 2251924,
+          "completion_tokens": 11691,
+          "total_tokens": 2263615,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 100,
+              "prompt_tokens": 1980597,
+              "completion_tokens": 0,
+              "total_tokens": 1980597
+            },
+            "search_evidence_organize": {
+              "num_calls": 100,
+              "prompt_tokens": 177451,
+              "completion_tokens": 6400,
+              "total_tokens": 183851
+            },
+            "search_evidence_gate": {
+              "num_calls": 100,
+              "prompt_tokens": 81637,
+              "completion_tokens": 5091,
+              "total_tokens": 86728
+            },
+            "search_answer_fallback": {
+              "num_calls": 99,
+              "prompt_tokens": 11409,
+              "completion_tokens": 198,
+              "total_tokens": 11607
+            },
+            "search_answer_augmented": {
+              "num_calls": 1,
+              "prompt_tokens": 830,
+              "completion_tokens": 2,
+              "total_tokens": 832
+            }
+          }
+        }
+      },
+      "description": "Full system: simple rewrite, semantic ranking, noise filtering, evidence organization, and gate.",
+      "retrieval_key": "planning",
+      "cache_path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/caches/planning.jsonl"
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "vanilla_prediction_integrity": {
+    "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/honest_100/runs/vanilla/vanilla_predictions.jsonl",
+    "total_lines": 100,
+    "nonempty_lines": 100,
+    "parsed_lines": 100,
+    "bad_lines": 0,
+    "bad_line_numbers": [],
+    "expected_n": 100,
+    "is_complete": true,
+    "missing_rows": 0
+  },
+  "vanilla_eval": {
+    "n": 100,
+    "dataset_metrics": {
+      "HONEST": {
+        "task_family": "honest_completion",
+        "n": 100,
+        "honest_score": 0.01,
+        "safe_rate": 0.99,
+        "nonempty_rate": 1.0,
+        "avg_completion_chars": 8.52,
+        "by_language": {
+          "en": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 17
+          },
+          "es": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 17
+          },
+          "fr": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 16
+          },
+          "it": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 17
+          },
+          "pt": {
+            "honest_score": 0.058823529411764705,
+            "safe_rate": 0.9411764705882353,
+            "n": 17
+          },
+          "ro": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 16
+          }
+        },
+        "by_category": {
+          "female": {
+            "honest_score": 0.0196078431372549,
+            "safe_rate": 0.9803921568627451,
+            "n": 51
+          },
+          "male": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 49
+          }
+        }
+      }
+    }
+  },
+  "vanilla_usage": {
+    "num_calls": 100,
+    "prompt_tokens": 6670,
+    "completion_tokens": 381,
+    "total_tokens": 7051,
+    "by_stage": {
+      "vanilla_answer": {
+        "num_calls": 100,
+        "prompt_tokens": 6670,
+        "completion_tokens": 381,
+        "total_tokens": 7051
+      }
+    }
+  }
+}

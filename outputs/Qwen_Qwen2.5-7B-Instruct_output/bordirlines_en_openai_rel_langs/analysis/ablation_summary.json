@@ -1,0 +1,803 @@
+{
+  "run_root": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs",
+  "config": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/configs/config_base.yaml",
+  "runs": [
+    {
+      "name": "vanilla",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/vanilla",
+      "params": {
+        "mode": "vanilla"
+      },
+      "n": 38,
+      "expected_n": 38,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/vanilla/vanilla_predictions.jsonl",
+        "total_lines": 38,
+        "nonempty_lines": 38,
+        "parsed_lines": 38,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 38,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "controller_match_rate": 0.6470588235294118,
+      "dataset_metrics": {
+        "task_family": "geopolitical_mcq",
+        "n": 38,
+        "controller_match_rate": 0.6470588235294118,
+        "valid_rate": 1.0,
+        "n_with_gold": 34,
+        "territory_majority_consistency": 0.0,
+        "territory_majority_consistency_micro": 0.0,
+        "cross_language_disagreement_rate": 0.0,
+        "by_language": {
+          "en": {
+            "controller_match_rate": 0.6470588235294118,
+            "valid_rate": 1.0,
+            "n": 38,
+            "n_with_gold": 34
+          }
+        }
+      },
+      "retrieval_metrics": {},
+      "metrics": {
+        "vanilla_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/vanilla/vanilla_predictions.jsonl",
+          "total_lines": 38,
+          "nonempty_lines": 38,
+          "parsed_lines": 38,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 38,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "vanilla_acc": 0.5789473684210527,
+        "vanilla_eval": {
+          "n": 38,
+          "dataset_metrics": {
+            "BordIRLines-openai-rel_langs": {
+              "task_family": "geopolitical_mcq",
+              "n": 38,
+              "controller_match_rate": 0.6470588235294118,
+              "valid_rate": 1.0,
+              "n_with_gold": 34,
+              "territory_majority_consistency": 0.0,
+              "territory_majority_consistency_micro": 0.0,
+              "cross_language_disagreement_rate": 0.0,
+              "by_language": {
+                "en": {
+                  "controller_match_rate": 0.6470588235294118,
+                  "valid_rate": 1.0,
+                  "n": 38,
+                  "n_with_gold": 34
+                }
+              }
+            }
+          }
+        },
+        "vanilla_usage": {
+          "num_calls": 38,
+          "prompt_tokens": 2101,
+          "completion_tokens": 76,
+          "total_tokens": 2177,
+          "by_stage": {
+            "vanilla_answer": {
+              "num_calls": 38,
+              "prompt_tokens": 2101,
+              "completion_tokens": 76,
+              "total_tokens": 2177
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "fixed_candidate_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "strict_feature_checks": true,
+        "use_cache_only": true,
+        "llm_query_rewrite": false,
+        "query_expansion_n": 1,
+        "embedding_preranker": "none",
+        "semantic_reranker": "none",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [],
+        "low_quality_url_keywords": []
+      },
+      "n": 38,
+      "expected_n": 38,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_rag/search_predictions.jsonl",
+        "total_lines": 38,
+        "nonempty_lines": 38,
+        "parsed_lines": 38,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 38,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "controller_match_rate": 0.7352941176470589,
+      "dataset_metrics": {
+        "task_family": "geopolitical_mcq",
+        "n": 38,
+        "controller_match_rate": 0.7352941176470589,
+        "valid_rate": 1.0,
+        "n_with_gold": 34,
+        "territory_majority_consistency": 0.0,
+        "territory_majority_consistency_micro": 0.0,
+        "cross_language_disagreement_rate": 0.0,
+        "by_language": {
+          "en": {
+            "controller_match_rate": 0.7352941176470589,
+            "valid_rate": 1.0,
+            "n": 38,
+            "n_with_gold": 34
+          }
+        }
+      },
+      "retrieval_metrics": {
+        "selected_precision": 0.16666666666666666,
+        "selected_recall": 0.6781746031746032,
+        "avg_selected_docs": 3.0,
+        "selected_doc_lang_distribution": {
+          "en": 0.9912280701754386,
+          "es": 0.008771929824561403
+        }
+      },
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_rag/search_predictions.jsonl",
+          "total_lines": 38,
+          "nonempty_lines": 38,
+          "parsed_lines": 38,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 38,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.6578947368421053,
+        "search_eval": {
+          "n": 38,
+          "dataset_metrics": {
+            "BordIRLines-openai-rel_langs": {
+              "task_family": "geopolitical_mcq",
+              "n": 38,
+              "controller_match_rate": 0.7352941176470589,
+              "valid_rate": 1.0,
+              "n_with_gold": 34,
+              "territory_majority_consistency": 0.0,
+              "territory_majority_consistency_micro": 0.0,
+              "cross_language_disagreement_rate": 0.0,
+              "by_language": {
+                "en": {
+                  "controller_match_rate": 0.7352941176470589,
+                  "valid_rate": 1.0,
+                  "n": 38,
+                  "n_with_gold": 34
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 38,
+          "used_evidence_n": 38,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 38
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 38,
+          "prompt_tokens": 12853,
+          "completion_tokens": 76,
+          "total_tokens": 12929,
+          "by_stage": {
+            "search_answer_augmented": {
+              "num_calls": 38,
+              "prompt_tokens": 12853,
+              "completion_tokens": 76,
+              "total_tokens": 12929
+            }
+          }
+        }
+      },
+      "description": "Replay official fixed candidates with lexical ranking only."
+    },
+    {
+      "name": "fixed_candidate_semantic_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_semantic_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "strict_feature_checks": true,
+        "use_cache_only": true,
+        "llm_query_rewrite": false,
+        "query_expansion_n": 1,
+        "embedding_preranker": "openai",
+        "semantic_reranker": "cross_encoder",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [],
+        "low_quality_url_keywords": []
+      },
+      "n": 38,
+      "expected_n": 38,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_semantic_rag/search_predictions.jsonl",
+        "total_lines": 38,
+        "nonempty_lines": 38,
+        "parsed_lines": 38,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 38,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "controller_match_rate": 0.8529411764705882,
+      "dataset_metrics": {
+        "task_family": "geopolitical_mcq",
+        "n": 38,
+        "controller_match_rate": 0.8529411764705882,
+        "valid_rate": 1.0,
+        "n_with_gold": 34,
+        "territory_majority_consistency": 0.0,
+        "territory_majority_consistency_micro": 0.0,
+        "cross_language_disagreement_rate": 0.0,
+        "by_language": {
+          "en": {
+            "controller_match_rate": 0.8529411764705882,
+            "valid_rate": 1.0,
+            "n": 38,
+            "n_with_gold": 34
+          }
+        }
+      },
+      "retrieval_metrics": {
+        "selected_precision": 0.15789473684210525,
+        "selected_recall": 0.6411375661375661,
+        "avg_selected_docs": 3.0,
+        "selected_doc_lang_distribution": {
+          "en": 0.9649122807017544,
+          "es": 0.017543859649122806,
+          "sw": 0.017543859649122806
+        }
+      },
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_semantic_rag/search_predictions.jsonl",
+          "total_lines": 38,
+          "nonempty_lines": 38,
+          "parsed_lines": 38,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 38,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.7631578947368421,
+        "search_eval": {
+          "n": 38,
+          "dataset_metrics": {
+            "BordIRLines-openai-rel_langs": {
+              "task_family": "geopolitical_mcq",
+              "n": 38,
+              "controller_match_rate": 0.8529411764705882,
+              "valid_rate": 1.0,
+              "n_with_gold": 34,
+              "territory_majority_consistency": 0.0,
+              "territory_majority_consistency_micro": 0.0,
+              "cross_language_disagreement_rate": 0.0,
+              "by_language": {
+                "en": {
+                  "controller_match_rate": 0.8529411764705882,
+                  "valid_rate": 1.0,
+                  "n": 38,
+                  "n_with_gold": 34
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 38,
+          "used_evidence_n": 38,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 38
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 76,
+          "prompt_tokens": 56952,
+          "completion_tokens": 76,
+          "total_tokens": 57028,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 38,
+              "prompt_tokens": 44045,
+              "completion_tokens": 0,
+              "total_tokens": 44045
+            },
+            "search_answer_augmented": {
+              "num_calls": 38,
+              "prompt_tokens": 12907,
+              "completion_tokens": 76,
+              "total_tokens": 12983
+            }
+          }
+        }
+      },
+      "description": "Fixed candidates plus embedding pre-rank and cross-encoder rerank."
+    },
+    {
+      "name": "fixed_candidate_semantic_noise_filter",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_semantic_noise_filter",
+      "params": {
+        "pipeline_variant": "general",
+        "strict_feature_checks": true,
+        "use_cache_only": true,
+        "llm_query_rewrite": false,
+        "query_expansion_n": 1,
+        "embedding_preranker": "openai",
+        "semantic_reranker": "cross_encoder",
+        "enable_evidence_organization": false,
+        "enable_evidence_gate": false,
+        "min_evidence_score": 0.0,
+        "low_quality_domains": [
+          "brainly.com",
+          "classace.io",
+          "coursehero.com",
+          "gauthmath.com",
+          "gauth.com",
+          "quizlet.com",
+          "studocu.com",
+          "bartleby.com",
+          "answers.com",
+          "enotes.com"
+        ],
+        "low_quality_url_keywords": [
+          "flashcard",
+          "flash-card",
+          "homework",
+          "worksheet",
+          "multiple-choice",
+          "quizlet",
+          "expert-verified",
+          "answer-key",
+          "answer/",
+          "/author/",
+          "annotated-bib",
+          "annotated-bibliography"
+        ]
+      },
+      "n": 38,
+      "expected_n": 38,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_semantic_noise_filter/search_predictions.jsonl",
+        "total_lines": 38,
+        "nonempty_lines": 38,
+        "parsed_lines": 38,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 38,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "controller_match_rate": 0.8529411764705882,
+      "dataset_metrics": {
+        "task_family": "geopolitical_mcq",
+        "n": 38,
+        "controller_match_rate": 0.8529411764705882,
+        "valid_rate": 1.0,
+        "n_with_gold": 34,
+        "territory_majority_consistency": 0.0,
+        "territory_majority_consistency_micro": 0.0,
+        "cross_language_disagreement_rate": 0.0,
+        "by_language": {
+          "en": {
+            "controller_match_rate": 0.8529411764705882,
+            "valid_rate": 1.0,
+            "n": 38,
+            "n_with_gold": 34
+          }
+        }
+      },
+      "retrieval_metrics": {
+        "selected_precision": 0.15789473684210525,
+        "selected_recall": 0.6411375661375661,
+        "avg_selected_docs": 3.0,
+        "selected_doc_lang_distribution": {
+          "en": 0.9649122807017544,
+          "es": 0.017543859649122806,
+          "sw": 0.017543859649122806
+        }
+      },
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/fixed_candidate_semantic_noise_filter/search_predictions.jsonl",
+          "total_lines": 38,
+          "nonempty_lines": 38,
+          "parsed_lines": 38,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 38,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.7631578947368421,
+        "search_eval": {
+          "n": 38,
+          "dataset_metrics": {
+            "BordIRLines-openai-rel_langs": {
+              "task_family": "geopolitical_mcq",
+              "n": 38,
+              "controller_match_rate": 0.8529411764705882,
+              "valid_rate": 1.0,
+              "n_with_gold": 34,
+              "territory_majority_consistency": 0.0,
+              "territory_majority_consistency_micro": 0.0,
+              "cross_language_disagreement_rate": 0.0,
+              "by_language": {
+                "en": {
+                  "controller_match_rate": 0.8529411764705882,
+                  "valid_rate": 1.0,
+                  "n": 38,
+                  "n_with_gold": 34
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 38,
+          "used_evidence_n": 38,
+          "used_evidence_rate": 1.0,
+          "stage_counts": {
+            "search_answer_augmented": 38
+          },
+          "gate_reason_top": []
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "effective_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": false,
+            "evidence_gate": false
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 76,
+          "prompt_tokens": 56952,
+          "completion_tokens": 76,
+          "total_tokens": 57028,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 38,
+              "prompt_tokens": 44045,
+              "completion_tokens": 0,
+              "total_tokens": 44045
+            },
+            "search_answer_augmented": {
+              "num_calls": 38,
+              "prompt_tokens": 12907,
+              "completion_tokens": 76,
+              "total_tokens": 12983
+            }
+          }
+        }
+      },
+      "description": "Fixed candidates plus semantic ranking and noise filtering."
+    },
+    {
+      "name": "full_fixed_candidate_rag",
+      "output_dir": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/full_fixed_candidate_rag",
+      "params": {
+        "pipeline_variant": "general",
+        "strict_feature_checks": true,
+        "use_cache_only": true,
+        "llm_query_rewrite": false,
+        "query_expansion_n": 1,
+        "embedding_preranker": "openai",
+        "embedding_model": "text-embedding-3-small",
+        "embedding_preranker_top_m": 36,
+        "embedding_preranker_weight": 0.15,
+        "semantic_reranker": "cross_encoder",
+        "semantic_reranker_model": "cross-encoder/ms-marco-MiniLM-L-12-v2",
+        "semantic_reranker_top_m": 24,
+        "semantic_reranker_weight": 0.2,
+        "semantic_reranker_device": "cpu",
+        "semantic_reranker_batch_size": 32,
+        "enable_evidence_organization": true,
+        "enable_evidence_gate": true,
+        "min_evidence_score": 0.16,
+        "summary_max_items": 4,
+        "low_quality_domains": [
+          "brainly.com",
+          "classace.io",
+          "coursehero.com",
+          "gauthmath.com",
+          "gauth.com",
+          "quizlet.com",
+          "studocu.com",
+          "bartleby.com",
+          "answers.com",
+          "enotes.com"
+        ],
+        "low_quality_url_keywords": [
+          "flashcard",
+          "flash-card",
+          "homework",
+          "worksheet",
+          "multiple-choice",
+          "quizlet",
+          "expert-verified",
+          "answer-key",
+          "answer/",
+          "/author/",
+          "annotated-bib",
+          "annotated-bibliography"
+        ]
+      },
+      "n": 38,
+      "expected_n": 38,
+      "prediction_integrity": {
+        "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/full_fixed_candidate_rag/search_predictions.jsonl",
+        "total_lines": 38,
+        "nonempty_lines": 38,
+        "parsed_lines": 38,
+        "bad_lines": 0,
+        "bad_line_numbers": [],
+        "expected_n": 38,
+        "is_complete": true,
+        "missing_rows": 0
+      },
+      "controller_match_rate": 0.7647058823529411,
+      "dataset_metrics": {
+        "task_family": "geopolitical_mcq",
+        "n": 38,
+        "controller_match_rate": 0.7647058823529411,
+        "valid_rate": 1.0,
+        "n_with_gold": 34,
+        "territory_majority_consistency": 0.0,
+        "territory_majority_consistency_micro": 0.0,
+        "cross_language_disagreement_rate": 0.0,
+        "by_language": {
+          "en": {
+            "controller_match_rate": 0.7647058823529411,
+            "valid_rate": 1.0,
+            "n": 38,
+            "n_with_gold": 34
+          }
+        }
+      },
+      "retrieval_metrics": {
+        "selected_precision": 0.15789473684210525,
+        "selected_recall": 0.6411375661375661,
+        "avg_selected_docs": 3.0,
+        "selected_doc_lang_distribution": {
+          "en": 0.9649122807017544,
+          "es": 0.017543859649122806,
+          "sw": 0.017543859649122806
+        }
+      },
+      "metrics": {
+        "search_prediction_integrity": {
+          "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/full_fixed_candidate_rag/search_predictions.jsonl",
+          "total_lines": 38,
+          "nonempty_lines": 38,
+          "parsed_lines": 38,
+          "bad_lines": 0,
+          "bad_line_numbers": [],
+          "expected_n": 38,
+          "is_complete": true,
+          "missing_rows": 0
+        },
+        "search_acc": 0.6842105263157895,
+        "search_eval": {
+          "n": 38,
+          "dataset_metrics": {
+            "BordIRLines-openai-rel_langs": {
+              "task_family": "geopolitical_mcq",
+              "n": 38,
+              "controller_match_rate": 0.7647058823529411,
+              "valid_rate": 1.0,
+              "n_with_gold": 34,
+              "territory_majority_consistency": 0.0,
+              "territory_majority_consistency_micro": 0.0,
+              "cross_language_disagreement_rate": 0.0,
+              "by_language": {
+                "en": {
+                  "controller_match_rate": 0.7647058823529411,
+                  "valid_rate": 1.0,
+                  "n": 38,
+                  "n_with_gold": 34
+                }
+              }
+            }
+          }
+        },
+        "search_trace_summary": {
+          "n": 38,
+          "used_evidence_n": 27,
+          "used_evidence_rate": 0.7105263157894737,
+          "stage_counts": {
+            "search_answer_fallback": 11,
+            "search_answer_augmented": 27
+          },
+          "gate_reason_top": [
+            {
+              "reason": "llm_gate_rejected",
+              "count": 8
+            },
+            {
+              "reason": "The evidence provides specific and on-topic information about Chiengi being located in the Luapula Province of Zambia and its administrative status within Zambia. This directly supports the answer to the question.",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information is either too broad, not specific to Lunchinda-Pweto Province, or discusses border disputes without clear distinction to the specific province in question.",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information is not specific about the location of the Lunkinda River. It provides general information about Zambia and neighboring countries but does not mention the Lunkinda River or its territorial affiliation.",
+              "count": 1
+            },
+            {
+              "reason": "e1 provides specific and on-topic information that Pweto is in the Democratic Republic of the Congo and is the administrative center of Pweto Territory, directly supporting one of the answer choices.",
+              "count": 1
+            },
+            {
+              "reason": "The evidence specifies that Mbamba Bay is located in western Tanzania and provides additional context about its geographical and administrative location within Tanzania.",
+              "count": 1
+            },
+            {
+              "reason": "e1 provides specific and on-topic information about the Okpara River being a river of Benin and its geographical context, which directly helps distinguish between the answer options.",
+              "count": 1
+            },
+            {
+              "reason": "The retrieved information does not provide any specific details about Sindabezi Island or its territorial status. It only gives general information about Zimbabwe and Zambia.",
+              "count": 1
+            },
+            {
+              "reason": "The evidence provides specific information about the United States' claim to Bajo Nuevo Bank and its status in relation to Colombia, which directly addresses the question.",
+              "count": 1
+            },
+            {
+              "reason": "The evidence provides clear and specific information about the current administration of Navassa Island by the United States, supported by historical context and legal basis.",
+              "count": 1
+            }
+          ]
+        },
+        "search_runtime_status": {
+          "provider": "openai",
+          "requested_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": true,
+            "evidence_gate": true
+          },
+          "effective_features": {
+            "llm_query_rewrite": false,
+            "hyde": false,
+            "llm_relevance": false,
+            "query_feedback_retry": false,
+            "evidence_organization": true,
+            "evidence_gate": true
+          },
+          "strict_feature_checks": true,
+          "rewrite_policy": "auto",
+          "runtime_warnings": []
+        },
+        "search_usage": {
+          "num_calls": 152,
+          "prompt_tokens": 94779,
+          "completion_tokens": 4718,
+          "total_tokens": 99497,
+          "by_stage": {
+            "search_embedding_prerank": {
+              "num_calls": 38,
+              "prompt_tokens": 44045,
+              "completion_tokens": 0,
+              "total_tokens": 44045
+            },
+            "search_evidence_organize": {
+              "num_calls": 38,
+              "prompt_tokens": 26375,
+              "completion_tokens": 2432,
+              "total_tokens": 28807
+            },
+            "search_evidence_gate": {
+              "num_calls": 38,
+              "prompt_tokens": 14568,
+              "completion_tokens": 2210,
+              "total_tokens": 16778
+            },
+            "search_answer_fallback": {
+              "num_calls": 11,
+              "prompt_tokens": 579,
+              "completion_tokens": 22,
+              "total_tokens": 601
+            },
+            "search_answer_augmented": {
+              "num_calls": 27,
+              "prompt_tokens": 9212,
+              "completion_tokens": 54,
+              "total_tokens": 9266
+            }
+          }
+        }
+      },
+      "description": "Fixed candidates plus semantic ranking, noise filtering, evidence organization, and gate."
+    }
+  ]
+}

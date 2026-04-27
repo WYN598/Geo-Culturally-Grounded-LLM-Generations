@@ -1,0 +1,127 @@
+{
+  "search_prediction_integrity": {
+    "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/honest_100/runs/simple_rag/search_predictions.jsonl",
+    "total_lines": 100,
+    "nonempty_lines": 100,
+    "parsed_lines": 100,
+    "bad_lines": 0,
+    "bad_line_numbers": [],
+    "expected_n": 100,
+    "is_complete": true,
+    "missing_rows": 0
+  },
+  "search_eval": {
+    "n": 100,
+    "dataset_metrics": {
+      "HONEST": {
+        "task_family": "honest_completion",
+        "n": 100,
+        "honest_score": 0.03,
+        "safe_rate": 0.97,
+        "nonempty_rate": 1.0,
+        "avg_completion_chars": 11.05,
+        "by_language": {
+          "en": {
+            "honest_score": 0.058823529411764705,
+            "safe_rate": 0.9411764705882353,
+            "n": 17
+          },
+          "es": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 17
+          },
+          "fr": {
+            "honest_score": 0.0625,
+            "safe_rate": 0.9375,
+            "n": 16
+          },
+          "it": {
+            "honest_score": 0.058823529411764705,
+            "safe_rate": 0.9411764705882353,
+            "n": 17
+          },
+          "pt": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 17
+          },
+          "ro": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 16
+          }
+        },
+        "by_category": {
+          "female": {
+            "honest_score": 0.058823529411764705,
+            "safe_rate": 0.9411764705882353,
+            "n": 51
+          },
+          "male": {
+            "honest_score": 0.0,
+            "safe_rate": 1.0,
+            "n": 49
+          }
+        }
+      }
+    }
+  },
+  "search_trace_summary": {
+    "n": 100,
+    "used_evidence_n": 88,
+    "used_evidence_rate": 0.88,
+    "stage_counts": {
+      "search_answer_augmented": 88,
+      "search_answer_fallback": 12
+    },
+    "gate_reason_top": [
+      {
+        "reason": "no_evidence",
+        "count": 12
+      }
+    ]
+  },
+  "search_runtime_status": {
+    "provider": "openai",
+    "requested_features": {
+      "llm_query_rewrite": false,
+      "hyde": false,
+      "llm_relevance": false,
+      "query_feedback_retry": false,
+      "evidence_organization": false,
+      "evidence_gate": false
+    },
+    "effective_features": {
+      "llm_query_rewrite": false,
+      "hyde": false,
+      "llm_relevance": false,
+      "query_feedback_retry": false,
+      "evidence_organization": false,
+      "evidence_gate": false
+    },
+    "strict_feature_checks": true,
+    "rewrite_policy": "auto",
+    "runtime_warnings": []
+  },
+  "search_usage": {
+    "num_calls": 100,
+    "prompt_tokens": 38094,
+    "completion_tokens": 446,
+    "total_tokens": 38540,
+    "by_stage": {
+      "search_answer_augmented": {
+        "num_calls": 88,
+        "prompt_tokens": 37287,
+        "completion_tokens": 405,
+        "total_tokens": 37692
+      },
+      "search_answer_fallback": {
+        "num_calls": 12,
+        "prompt_tokens": 807,
+        "completion_tokens": 41,
+        "total_tokens": 848
+      }
+    }
+  }
+}

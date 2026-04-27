@@ -1,0 +1,137 @@
+{
+  "search_prediction_integrity": {
+    "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/cbbq_100/runs/full_general_rag/search_predictions.jsonl",
+    "total_lines": 100,
+    "nonempty_lines": 100,
+    "parsed_lines": 100,
+    "bad_lines": 0,
+    "bad_line_numbers": [],
+    "expected_n": 100,
+    "is_complete": true,
+    "missing_rows": 0
+  },
+  "search_acc": 0.63,
+  "search_eval": {
+    "n": 100,
+    "dataset_metrics": {
+      "CBBQ": {
+        "task_family": "mcq",
+        "accuracy": 0.63,
+        "valid_rate": 1.0,
+        "invalid_rate": 0.0,
+        "n": 100
+      }
+    }
+  },
+  "search_trace_summary": {
+    "n": 100,
+    "used_evidence_n": 1,
+    "used_evidence_rate": 0.01,
+    "stage_counts": {
+      "search_answer_fallback": 99,
+      "search_answer_augmented": 1
+    },
+    "gate_reason_top": [
+      {
+        "reason": "llm_gate_rejected",
+        "count": 14
+      },
+      {
+        "reason": "提供的信息与问题无关，且包含大量无关和低质量内容。",
+        "count": 2
+      },
+      {
+        "reason": "检索到的信息与问题无关，均为无关内容。",
+        "count": 1
+      },
+      {
+        "reason": "提供的信息与问题核心不直接相关，主要讨论的是农村学生在高考中的表现及教育公平问题，而非具体到转学申请的成功率。",
+        "count": 1
+      },
+      {
+        "reason": "提供的信息与问题无关，未提及爱尔兰人或厄瓜多尔人的酒吧出勤情况。",
+        "count": 1
+      },
+      {
+        "reason": "The retrieved information is not specific to the question and does not provide clear evidence to distinguish between the two options regarding employee willingness to join.",
+        "count": 1
+      },
+      {
+        "reason": "提供的信息与问题无关，未提及家长参与孩子学习的情况。",
+        "count": 1
+      },
+      {
+        "reason": "提供的信息与具体情境无关，且没有直接支持任何特定人物的情感状态。",
+        "count": 1
+      },
+      {
+        "reason": "The retrieved information is not specific, on-topic, or directly relevant to the decision-making process for choosing between the two applicants based on their experience and skills.",
+        "count": 1
+      },
+      {
+        "reason": "提供的信息主要讨论老年人和年轻人消费观的变化趋势，但没有具体提及哪一方更追求物质上的享受。",
+        "count": 1
+      }
+    ]
+  },
+  "search_runtime_status": {
+    "provider": "openai",
+    "requested_features": {
+      "llm_query_rewrite": true,
+      "hyde": false,
+      "llm_relevance": false,
+      "query_feedback_retry": false,
+      "evidence_organization": true,
+      "evidence_gate": true
+    },
+    "effective_features": {
+      "llm_query_rewrite": true,
+      "hyde": false,
+      "llm_relevance": false,
+      "query_feedback_retry": false,
+      "evidence_organization": true,
+      "evidence_gate": true
+    },
+    "strict_feature_checks": true,
+    "rewrite_policy": "auto",
+    "runtime_warnings": []
+  },
+  "search_usage": {
+    "num_calls": 400,
+    "prompt_tokens": 2251924,
+    "completion_tokens": 11691,
+    "total_tokens": 2263615,
+    "by_stage": {
+      "search_embedding_prerank": {
+        "num_calls": 100,
+        "prompt_tokens": 1980597,
+        "completion_tokens": 0,
+        "total_tokens": 1980597
+      },
+      "search_evidence_organize": {
+        "num_calls": 100,
+        "prompt_tokens": 177451,
+        "completion_tokens": 6400,
+        "total_tokens": 183851
+      },
+      "search_evidence_gate": {
+        "num_calls": 100,
+        "prompt_tokens": 81637,
+        "completion_tokens": 5091,
+        "total_tokens": 86728
+      },
+      "search_answer_fallback": {
+        "num_calls": 99,
+        "prompt_tokens": 11409,
+        "completion_tokens": 198,
+        "total_tokens": 11607
+      },
+      "search_answer_augmented": {
+        "num_calls": 1,
+        "prompt_tokens": 830,
+        "completion_tokens": 2,
+        "total_tokens": 832
+      }
+    }
+  }
+}

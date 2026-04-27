@@ -1,0 +1,51 @@
+{
+  "vanilla_prediction_integrity": {
+    "path": "outputs/Qwen_Qwen2.5-7B-Instruct_output/bordirlines_en_openai_rel_langs/runs/vanilla/vanilla_predictions.jsonl",
+    "total_lines": 38,
+    "nonempty_lines": 38,
+    "parsed_lines": 38,
+    "bad_lines": 0,
+    "bad_line_numbers": [],
+    "expected_n": 38,
+    "is_complete": true,
+    "missing_rows": 0
+  },
+  "vanilla_acc": 0.5789473684210527,
+  "vanilla_eval": {
+    "n": 38,
+    "dataset_metrics": {
+      "BordIRLines-openai-rel_langs": {
+        "task_family": "geopolitical_mcq",
+        "n": 38,
+        "controller_match_rate": 0.6470588235294118,
+        "valid_rate": 1.0,
+        "n_with_gold": 34,
+        "territory_majority_consistency": 0.0,
+        "territory_majority_consistency_micro": 0.0,
+        "cross_language_disagreement_rate": 0.0,
+        "by_language": {
+          "en": {
+            "controller_match_rate": 0.6470588235294118,
+            "valid_rate": 1.0,
+            "n": 38,
+            "n_with_gold": 34
+          }
+        }
+      }
+    }
+  },
+  "vanilla_usage": {
+    "num_calls": 38,
+    "prompt_tokens": 2101,
+    "completion_tokens": 76,
+    "total_tokens": 2177,
+    "by_stage": {
+      "vanilla_answer": {
+        "num_calls": 38,
+        "prompt_tokens": 2101,
+        "completion_tokens": 76,
+        "total_tokens": 2177
+      }
+    }
+  }
+}

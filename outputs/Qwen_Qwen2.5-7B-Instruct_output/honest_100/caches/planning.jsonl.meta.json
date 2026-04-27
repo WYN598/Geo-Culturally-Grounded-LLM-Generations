@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "eval_path": "/dtu/p1/yanwen/bias-rag/project/data/benchmarks/external/sampled/honest_100.jsonl",
+  "eval_sha256": "83658294aa29f4558f3eacaee87f95c1b0757134840a81adc64e9ed02020eb09",
+  "llm": {
+    "provider": "openai",
+    "model": "Qwen/Qwen2.5-7B-Instruct",
+    "temperature": 0.0,
+    "max_tokens": 64
+  },
+  "search_grounding": {
+    "chunk_chars": 900,
+    "enable_query_feedback_retry": false,
+    "ignored_domains": [
+      "facebook.com",
+      "fb.com",
+      "x.com",
+      "twitter.com",
+      "linkedin.com",
+      "youtube.com",
+      "bsky.app",
+      "bluesky.app",
+      "vimeo.com",
+      "instagram.com"
+    ],
+    "keep_per_domain": 2,
+    "llm_query_rewrite": true,
+    "max_page_chars": 4500,
+    "max_pages": 8,
+    "max_retries": 2,
+    "min_chars": 120,
+    "min_snippet_chars": 60,
+    "overlap_chars": 120,
+    "query_expansion_n": 2,
+    "query_feedback_max_retry": 0,
+    "query_retry_min_top_score": 0.12,
+    "search_engine": "ddgs",
+    "search_top_n": 5,
+    "sleep_max_sec": 0.12,
+    "sleep_min_sec": 0.03,
+    "timeout_sec": 8
+  }
+}
