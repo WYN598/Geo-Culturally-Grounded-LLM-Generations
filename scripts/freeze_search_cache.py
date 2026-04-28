@@ -14,6 +14,7 @@ if str(ROOT) not in sys.path:
 
 from src.llm_client import LLMClient
 from src.pipeline import (
+    BiasAwareSearchPipeline,
     GeneralSearchPipeline,
     build_search_cache_fingerprint,
     dump_jsonl,
@@ -69,7 +70,10 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         google_disable_sec=int(scfg.get("google_disable_sec", 600)),
     )
 
-    pipe = GeneralSearchPipeline(
+    search_pipeline_type = str(scfg.get("search_pipeline_type", "general") or "general").strip().lower()
+    pipe_cls = BiasAwareSearchPipeline if search_pipeline_type == "bias_aware" else GeneralSearchPipeline
+
+    pipe = pipe_cls(
         llm=llm,
         web=web,
         search_top_n=int(scfg.get("search_top_n", 5)),
@@ -93,6 +97,16 @@ def run(config_path: str, out_cache: str, limit: int = 0) -> None:
         semantic_reranker_batch_size=int(scfg.get("semantic_reranker_batch_size", 32)),
         diversify_by_url=bool(scfg.get("diversify_by_url", True)),
         domain_priors=dict(scfg.get("domain_priors", {}) or {}),
+        enable_hyde=bool(scfg.get("enable_hyde", False)),
+        hyde_query_n=int(scfg.get("hyde_query_n", 1)),
+        risk_medium_threshold=float(scfg.get("risk_medium_threshold", 1.5)),
+        risk_high_threshold=float(scfg.get("risk_high_threshold", 3.5)),
+        bias_query_max_n=int(scfg.get("bias_query_max_n", 4)),
+        enable_balance_gate=bool(scfg.get("enable_balance_gate", True)),
+        route_bonus_primary=float(scfg.get("route_bonus_primary", 0.02)),
+        route_bonus_claim_testing=float(scfg.get("route_bonus_claim_testing", 0.03)),
+        route_bonus_counter_evidence=float(scfg.get("route_bonus_counter_evidence", 0.05)),
+        route_bonus_confounder_context=float(scfg.get("route_bonus_confounder_context", 0.04)),
         enable_query_feedback_retry=bool(scfg.get("enable_query_feedback_retry", True)),
         query_feedback_max_retry=int(scfg.get("query_feedback_max_retry", 1)),
         query_retry_min_top_score=float(scfg.get("query_retry_min_top_score", 0.12)),

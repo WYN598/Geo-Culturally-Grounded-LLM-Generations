@@ -240,6 +240,9 @@ def run(args: argparse.Namespace) -> None:
     if args.model:
         cfg_run["llm"]["model"] = args.model
     cfg_run["llm"]["temperature"] = float(args.temperature)
+    if args.search_pipeline_type:
+        cfg_run.setdefault("search_grounding", {})
+        cfg_run["search_grounding"]["search_pipeline_type"] = str(args.search_pipeline_type).strip().lower()
     run_root = resolve_run_root(args.out_root, cfg_run, args.tag)
     ensure_dir(str(run_root))
     ensure_dir(str(run_root / "configs"))
@@ -385,5 +388,6 @@ if __name__ == "__main__":
     parser.add_argument("--provider", default="")
     parser.add_argument("--model", default="")
     parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--search-pipeline-type", default="")
     parser.add_argument("--no-full-general", action="store_true")
     run(parser.parse_args())

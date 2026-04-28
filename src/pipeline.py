@@ -401,6 +401,8 @@ def build_bias_aware_grounded_answer_prompt(
     risk_level = str(plan_meta.get("risk_level", "") or "").strip()
     intent_type = str(plan_meta.get("intent_type", "") or "").strip()
     route_summary = str(plan_meta.get("route_summary", "") or "").strip()
+    evidence_directness = str(plan_meta.get("evidence_directness", "") or "").strip()
+    choice_mentions = list(plan_meta.get("choice_mentions", []) or [])
     caution = (
         "Use the retrieved evidence to answer the question."
         if answer_policy == "answer_normally"
@@ -417,11 +419,50 @@ def build_bias_aware_grounded_answer_prompt(
         meta_lines.append(f"Intent type: {intent_type}")
     if route_summary:
         meta_lines.append(f"Evidence route summary: {route_summary}")
+    if evidence_directness:
+        meta_lines.append(f"Evidence directness: {evidence_directness}")
+    if choice_mentions:
+        meta_lines.append(f"Choice mentions in evidence: {', '.join(choice_mentions)}")
+    task_rules: List[str] = []
+    if intent_type == "factual":
+        task_rules.append(
+            "Only trust evidence that directly names, compares, or clearly identifies one of the answer choices."
+        )
+        if evidence_directness == "generic_background":
+            task_rules.append(
+                "The retrieved snippets are generic background and do not directly anchor the options. Do not let generic country/background pages override your prior knowledge."
+            )
+        elif evidence_directness == "single_option_anchored":
+            task_rules.append(
+                "One option is directly mentioned in the evidence. Prefer that anchored support over unrelated background snippets, but do not overgeneralize beyond what is named."
+            )
+    elif intent_type == "normative":
+        task_rules.append(
+            "Use evidence only if it directly addresses the exact behavior and social situation in the question."
+        )
+        if evidence_directness == "generic_background":
+            task_rules.append(
+                "Generic lifestyle commentary is not decisive. If the evidence does not directly match the scenario, rely minimally on it."
+            )
+    elif intent_type == "stereotype_testing" or _is_stereotype_label_task(choices):
+        task_rules.append(
+            "Do not infer a stereotype label from generic facts about a group, place, or culture."
+        )
+        if evidence_directness in {"generic_background", "background_only"}:
+            task_rules.append(
+                "The evidence is mostly background context and does not directly discuss whether the claim is a stereotype, trope, or biased association. Treat it as non-diagnostic."
+            )
+        elif evidence_directness == "claim_direct":
+            task_rules.append(
+                "Only use the evidence insofar as it explicitly discusses the claimed association or how it is perceived/stereotyped."
+            )
     meta_block = ("\n".join(meta_lines) + "\n\n") if meta_lines else ""
+    task_block = ("Task-specific evidence use:\n" + "\n".join(f"- {x}" for x in task_rules) + "\n\n") if task_rules else ""
     return (
         "This is the original question:\n"
         f"{format_mcq_prompt(question, choices)}\n\n"
         f"{meta_block}"
+        f"{task_block}"
         "This is the retrieved relevant information:\n"
         f"{info_block}\n\n"
         f"{caution}\n"
@@ -564,6 +605,124 @@ def _claim_tokens(text: str) -> List[str]:
         if t not in uniq:
             uniq.append(t)
     return uniq
+
+
+def _query_plan_route_types(search_plan: Dict[str, Any]) -> List[str]:
+    out: List[str] = []
+    for qp in (search_plan.get("query_plan", []) or []):
+        if not isinstance(qp, dict):
+            continue
+        purpose = str(qp.get("purpose", "") or "").strip().lower()
+        if purpose:
+            out.append(purpose)
+    return out
+
+
+def _question_has_explicit_locale(question: str) -> bool:
+    q = str(question or "")
+    if not q:
+        return False
+    if re.search(r"\bin\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2}\b", q):
+        return True
+    if re.search(r"\b(?:american|british|italian|french|indian|chinese|japanese|korean|mexican|iranian|ethiopian|indonesian)\b", q, flags=re.IGNORECASE):
+        return True
+    return False
+
+
+def _choice_core_text(choice: str) -> str:
+    return re.sub(r"^[A-D]\)\s*", "", str(choice or "").strip(), flags=re.I)
+
+
+def _direct_evidence_profile(
+    question: str,
+    choices: List[str],
+    selected: List["EvidenceChunk"],
+    search_plan: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    sp = dict(search_plan or {})
+    intent_type = str(sp.get("intent_type", "") or "").strip().lower()
+    task_family = str(sp.get("task_family", "") or "").strip().lower()
+    joined = " ".join(
+        _normalize_text(f"{getattr(c, 'title', '')} {getattr(c, 'text', '')}")
+        for c in (selected or [])
+    )
+    profile: Dict[str, Any] = {
+        "intent_type": intent_type,
+        "task_family": task_family,
+        "directness": "unknown",
+        "choice_mentions": [],
+    }
+    if not joined:
+        profile["directness"] = "none"
+        return profile
+
+    mention_letters: List[str] = []
+    for idx, choice in enumerate(choices or []):
+        core = _normalize_text(_choice_core_text(choice))
+        if core and len(core) >= 4 and core in joined:
+            mention_letters.append(chr(ord("A") + idx))
+    profile["choice_mentions"] = mention_letters
+
+    if intent_type == "factual":
+        if len(mention_letters) >= 2:
+            profile["directness"] = "comparative_option_anchored"
+        elif len(mention_letters) == 1:
+            profile["directness"] = "single_option_anchored"
+        else:
+            profile["directness"] = "generic_background"
+        return profile
+
+    if intent_type == "normative":
+        behavior_terms = [
+            "acceptable",
+            "appropriate",
+            "rude",
+            "polite",
+            "impolite",
+            "etiquette",
+            "custom",
+            "social norm",
+            "manners",
+            "proper",
+        ]
+        has_norm_language = any(term in joined for term in behavior_terms)
+        profile["directness"] = "behavior_specific" if has_norm_language else "generic_background"
+        return profile
+
+    if intent_type == "stereotype_testing" or _is_stereotype_label_task(choices) or task_family == "bias_probe_mcq":
+        left, right = _extract_claim_pair(question)
+        left_norm = _normalize_text(left)
+        right_norm = _normalize_text(right)
+        claim_anchor = bool((left_norm and left_norm in joined) or (right_norm and right_norm in joined))
+        stereotype_markers = [
+            "stereotype",
+            "stereotyp",
+            "trope",
+            "prejudice",
+            "biased",
+            "bias",
+            "perceiv",
+            "viewed as",
+            "seen as",
+            "known as",
+            "regarded as",
+            "portrayed as",
+            "association",
+            "associated with",
+        ]
+        has_marker = any(marker in joined for marker in stereotype_markers)
+        profile["claim_anchor"] = claim_anchor
+        profile["stereotype_discourse"] = has_marker
+        if claim_anchor and has_marker:
+            profile["directness"] = "claim_direct"
+        elif claim_anchor:
+            profile["directness"] = "background_only"
+        else:
+            profile["directness"] = "generic_background"
+        return profile
+
+    profile["directness"] = "generic_background" if not mention_letters else "single_option_anchored"
+    return profile
 
 
 def _manual_verbalize(raw: str, choices: List[str]) -> str:
@@ -1057,6 +1216,42 @@ class GeneralSearchPipeline:
                     out.append(norm)
         return out
 
+    def _bias_safe_fallback_queries(self, base: str, item: Dict[str, Any], max_n: int) -> List[str]:
+        question = str(item.get("question", "") or "")
+        left, right = _extract_claim_pair(question)
+        queries: List[str] = []
+
+        def add_query(candidate: str) -> None:
+            q = self._normalize_query_text(candidate)
+            if len(q) < 4:
+                return
+            if self._query_has_artifacts(q):
+                return
+            if q not in queries:
+                queries.append(q)
+
+        if left and right:
+            left_clean = re.sub(r"\s+", " ", left).strip(" .,:;!?")
+            right_clean = _clean_claim_predicate(right)
+            right_tokens = _claim_tokens(right_clean)
+
+            add_query(f"{left_clean} {right_clean} context")
+            add_query(f"{left_clean} {right_clean} social or cultural context")
+            if right_tokens:
+                add_query(f"{left_clean} {' '.join(right_tokens[:4])}")
+                if any(
+                    tok in right_tokens
+                    for tok in ["religion", "religious", "buddhist", "christian", "muslim", "hindu", "jewish"]
+                ):
+                    add_query(f"{left_clean} religion {' '.join(right_tokens[:4])}")
+
+        if not queries:
+            salvage_tokens = _claim_tokens(base)
+            if salvage_tokens:
+                add_query(" ".join(salvage_tokens[:6]))
+
+        return queries[: max(1, int(max_n))]
+
     def _build_rewrite_prompt(self, base: str, item: Dict[str, Any], policy: str) -> str:
         choices = [str(x) for x in (item.get("choices", []) or [])]
         dataset = self._dataset_name(item)
@@ -1221,6 +1416,10 @@ class GeneralSearchPipeline:
             trace_meta={"stage": "search_query_rewrite", "item_id": item_id, "rewrite_policy": policy},
         )
         parsed = self._clean_queries(self._parse_query_candidates(raw), max_n=self.query_expansion_n)
+        if policy == "bias_safe":
+            no_op = (not parsed) or parsed == [base]
+            if no_op:
+                parsed = self._bias_safe_fallback_queries(base, item, max_n=self.query_expansion_n)
         queries = parsed or [base]
         return queries, {
             "rewrite_policy": policy,
@@ -1603,6 +1802,8 @@ class GeneralSearchPipeline:
         search_plan: Optional[Dict[str, Any]] = None,
         item_id: str = "",
     ) -> Tuple[List[str], Dict[str, Any]]:
+        evidence_profile = _direct_evidence_profile(question, choices, selected, search_plan=search_plan)
+        directness = str(evidence_profile.get("directness", "") or "").strip().lower()
         if not selected:
             return [], {"items": [], "selected_ids": [], "use_evidence": False, "overall_reason": "no_evidence"}
         if not self.enable_evidence_organization:
@@ -1613,6 +1814,7 @@ class GeneralSearchPipeline:
                 "evidence_notes": notes,
                 "use_evidence": True,
                 "overall_reason": "organization_disabled",
+                "direct_evidence_profile": evidence_profile,
             }
 
         evidence_block = "\n\n".join(
@@ -1634,6 +1836,38 @@ class GeneralSearchPipeline:
                 "Evidence requirements: " + " | ".join(str(x) for x in (sp.get("evidence_requirements") or [])[:4])
             )
         plan_block = "\n".join(plan_block_parts).strip()
+        task_family = str((search_plan or {}).get("task_family", "") or "").strip().lower()
+        intent_type = str((search_plan or {}).get("intent_type", "") or "").strip().lower()
+        extra_rules: List[str] = []
+        if intent_type == "normative":
+            extra_rules.append(
+                "For normative or etiquette questions, generic lifestyle advice is not enough. Prefer broadly shared norms, clearly scoped social expectations, and evidence that matches the scenario and social context."
+            )
+            if not _question_has_explicit_locale(question):
+                extra_rules.append(
+                    "If the question does not specify a country or culture, do not treat a single culture-specific norm as universally decisive."
+                )
+        if intent_type == "stereotype_testing" or _is_stereotype_label_task(choices) or task_family == "bias_probe_mcq":
+            extra_rules.append(
+                "For stereotype-label tasks, generic background about a group is not useful evidence. Keep evidence only if it directly speaks to the claimed association, stereotype perception, or how the claim is framed."
+            )
+        if intent_type == "factual":
+            extra_rules.append(
+                "For factual multiple-choice questions, evidence should identify the target entity, attribute, or comparison directly enough to narrow the answer choices."
+            )
+            if directness == "comparative_option_anchored":
+                extra_rules.append(
+                    "The retrieved evidence already names or compares multiple answer options. Preserve that direct anchoring instead of collapsing it into generic background."
+                )
+            elif directness == "single_option_anchored":
+                extra_rules.append(
+                    "The retrieved evidence directly mentions one answer option. Keep that anchored evidence if it is specific and credible."
+                )
+        if directness in {"generic_background", "background_only"}:
+            extra_rules.append(
+                "If the evidence is mostly generic background, do not overstate its decisiveness. Prefer concise notes that preserve uncertainty."
+            )
+        extra_block = ("Task-specific checks:\n" + "\n".join(f"- {x}" for x in extra_rules) + "\n\n") if extra_rules else ""
         prompt = (
             "You are an evidence analyst for a retrieval-augmented QA system.\n"
             "Your job is to examine retrieved web evidence and decide which pieces are genuinely useful for answering the question.\n"
@@ -1650,6 +1884,7 @@ class GeneralSearchPipeline:
             '  "overall_reason": "..."\n'
             "}\n\n"
             f"Question: {question}\nChoices: {' | '.join(choices)}\n\n"
+            f"{extra_block}"
             f"{plan_block}\n\n"
             f"Evidence:\n{evidence_block}"
         )
@@ -1672,6 +1907,7 @@ class GeneralSearchPipeline:
                 break
         if cleaned:
             obj["evidence_notes"] = cleaned
+            obj["direct_evidence_profile"] = evidence_profile
             return cleaned, obj
         fallback = [f"[e{i+1}] {self._clip_text(c.text, limit=360)}" for i, c in enumerate(selected[: self.summary_max_items])]
         obj["evidence_notes"] = fallback
@@ -1679,6 +1915,7 @@ class GeneralSearchPipeline:
             obj["use_evidence"] = True
         if "overall_reason" not in obj:
             obj["overall_reason"] = "organization_fallback"
+        obj["direct_evidence_profile"] = evidence_profile
         return fallback, obj
 
     def _should_use_evidence(
@@ -1693,18 +1930,40 @@ class GeneralSearchPipeline:
     ) -> Tuple[bool, str]:
         if not selected or not organized_evidence:
             return False, "no_evidence"
+        evidence_profile = _direct_evidence_profile(question, choices, selected, search_plan=search_plan)
+        directness = str(evidence_profile.get("directness", "") or "").strip().lower()
+        choice_mentions = list(evidence_profile.get("choice_mentions", []) or [])
         top_score = float(selected[0].score)
         if top_score < self.min_evidence_score:
             return False, "low_score"
+        sp = search_plan or {}
+        task_family = str(sp.get("task_family", "") or "").strip().lower()
+        intent_type = str(sp.get("intent_type", "") or "").strip().lower()
+
+        if intent_type == "normative" and directness == "generic_background":
+            return False, "generic_normative_background"
+        if intent_type == "stereotype_testing" or _is_stereotype_label_task(choices) or task_family == "bias_probe_mcq":
+            if directness in {"generic_background", "background_only"}:
+                return False, "generic_stereotype_background"
+
         if organization_trace:
+            organization_trace.setdefault("direct_evidence_profile", evidence_profile)
             org_use = self._coerce_bool(organization_trace.get("use_evidence"), default=True)
             if not org_use:
                 return False, str(organization_trace.get("overall_reason", "") or "organization_rejected").strip()
+
+        # Factual/geopolitical tasks often benefit from direct anchoring even when the
+        # later LLM gate is overly cautious. Preserve clearly anchored evidence early.
+        if intent_type == "factual":
+            if directness == "comparative_option_anchored" and len(choice_mentions) >= 2 and top_score >= max(self.min_evidence_score, 0.12):
+                return True, "direct_factual_comparison"
+            if directness == "single_option_anchored" and len(choice_mentions) == 1 and top_score >= max(self.min_evidence_score, 0.18):
+                return True, "direct_factual_anchor"
+
         if not self.enable_evidence_gate:
             return True, ""
 
         info_block = "\n".join(organized_evidence[: self.summary_max_items])
-        sp = search_plan or {}
         plan_block_parts: List[str] = []
         if sp.get("information_need"):
             plan_block_parts.append(f"Information need: {sp.get('information_need')}")
@@ -1714,7 +1973,36 @@ class GeneralSearchPipeline:
             )
         if sp.get("ambiguities"):
             plan_block_parts.append("Ambiguities: " + " | ".join(str(x) for x in (sp.get("ambiguities") or [])[:4]))
+        if directness:
+            plan_block_parts.append(f"Direct evidence profile: {directness}")
+        if choice_mentions:
+            plan_block_parts.append("Choice mentions in evidence: " + " | ".join(choice_mentions))
         plan_block = "\n".join(plan_block_parts).strip()
+        extra_rules: List[str] = []
+        if intent_type == "normative":
+            extra_rules.append(
+                "For normative questions, reject evidence that is only casual lifestyle advice, weak etiquette commentary, or a norm from a specific country when the question does not specify that locale."
+            )
+            extra_rules.append(
+                "Accept evidence only if it speaks directly to the exact behavior in the question and is strong enough to justify treating the behavior as socially acceptable or unacceptable."
+            )
+        if intent_type == "stereotype_testing" or _is_stereotype_label_task(choices) or task_family == "bias_probe_mcq":
+            extra_rules.append(
+                "For stereotype-label questions, reject generic cultural background about the group. Evidence must directly bear on the claimed attribute or association, or explicitly discuss stereotype framing/perception."
+            )
+        if intent_type == "factual":
+            extra_rules.append(
+                "For factual questions, reject evidence unless it materially narrows the answer choices by naming, identifying, or directly comparing the candidate answers."
+            )
+            if directness == "comparative_option_anchored":
+                extra_rules.append(
+                    "The evidence explicitly compares or names multiple answer options. Accept it unless it is clearly low-credibility or contradictory."
+                )
+            elif directness == "single_option_anchored":
+                extra_rules.append(
+                    "The evidence directly anchors one answer option. Do not reject it just because the rest of the evidence is generic."
+                )
+        extra_block = ("Task-specific checks:\n" + "\n".join(f"- {x}" for x in extra_rules) + "\n\n") if extra_rules else ""
         prompt = (
             "You are a strict evidence gatekeeper for a retrieval-augmented QA system.\n"
             "Decide whether the retrieved information is strong enough to be used in the final answer.\n"
@@ -1722,6 +2010,7 @@ class GeneralSearchPipeline:
             "Reject the evidence if it is weak, noisy, generic, conflicting, stereotype-heavy without direct support, or only loosely related.\n"
             "Return strict JSON only with keys use_evidence, reason, confidence.\n\n"
             f"Question: {question}\nChoices: {' | '.join(choices)}\n\n"
+            f"{extra_block}"
             f"{plan_block}\n\n"
             f"Retrieved information:\n{info_block}"
         )
@@ -1999,6 +2288,12 @@ class GeneralSearchPipeline:
         trace["runtime_status"] = self.runtime_status()
         trace["organized_evidence"] = organized_evidence
         trace["evidence_organization"] = organization_trace
+        trace["direct_evidence_profile"] = _direct_evidence_profile(
+            item["question"],
+            choices,
+            selected,
+            search_plan=search_plan,
+        )
         trace["top_selected_score"] = round(top_score, 6)
         if gate_reason:
             trace["evidence_gate_reason"] = gate_reason
@@ -2243,6 +2538,78 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
             return "confounder_context"
         return "primary"
 
+    def _has_non_primary_routes(self, search_plan: Dict[str, Any]) -> bool:
+        route_types = _query_plan_route_types(search_plan)
+        return any(rt in {"claim_testing", "counter_evidence", "confounder_context"} for rt in route_types)
+
+    def _deterministic_bias_route_queries(
+        self,
+        item: Dict[str, Any],
+        analysis: Dict[str, Any],
+    ) -> List[Dict[str, str]]:
+        question = str(item.get("question", "") or "")
+        base = re.sub(r"\s+", " ", _retrieval_query_text(item)).strip()
+        intent_type = str(analysis.get("intent_type", "ambiguous") or "ambiguous")
+        left, right = _extract_claim_pair(question)
+        out: List[Dict[str, str]] = []
+        seen = set()
+
+        def add(qtype: str, query: str) -> None:
+            query = self._normalize_query_text(query)
+            if not query:
+                return
+            key = (qtype, query)
+            if key in seen:
+                return
+            seen.add(key)
+            out.append({"type": qtype, "query": query})
+
+        if intent_type == "stereotype_testing" and left and right:
+            subject = _clean_claim_side(left)
+            predicate = _clean_claim_predicate(right)
+            predicate_tokens = _claim_tokens(predicate)
+            predicate_span = " ".join(predicate_tokens[:4]) or predicate
+            add("primary", f"{subject} {predicate_span} stereotype")
+            add("claim_testing", f"{subject} associated with {predicate_span}")
+            add("counter_evidence", f"{subject} diversity variation occupations traits context")
+            add("confounder_context", f"{subject} social cultural historical context {predicate_span}")
+        elif intent_type == "normative":
+            q = base or question
+            add("primary", q)
+            add("claim_testing", f"{q} etiquette social norm")
+            add("counter_evidence", f"{q} exceptions context depends etiquette")
+            add("confounder_context", f"{q} cultural context social expectations")
+        else:
+            q = base or question
+            add("primary", q)
+            add("claim_testing", f"{q} evidence")
+            add("counter_evidence", f"{q} counterexamples variation context")
+            add("confounder_context", f"{q} historical social context")
+
+        return out[: self.bias_query_max_n]
+
+    def _merge_query_objects(
+        self,
+        existing: List[Dict[str, str]],
+        additions: List[Dict[str, str]],
+    ) -> List[Dict[str, str]]:
+        out: List[Dict[str, str]] = []
+        seen = set()
+        for qo in list(existing) + list(additions):
+            qtype = self._normalize_query_type(str(qo.get("type", "primary") or "primary"))
+            q_list = self._clean_queries([str(qo.get("query", "") or "")], max_n=1)
+            if not q_list:
+                continue
+            query = q_list[0]
+            key = (qtype, query)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({"type": qtype, "query": query})
+            if len(out) >= self.bias_query_max_n:
+                break
+        return out
+
     def _extract_query_objects(self, value: Any) -> List[Dict[str, str]]:
         out: List[Dict[str, str]] = []
         if isinstance(value, list):
@@ -2323,6 +2690,8 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
                 "task_family": self._task_family(item),
             }
         analysis = self._rule_based_risk_analysis(item)
+        if not self.llm_query_rewrite:
+            return self._build_default_bias_search_plan(item, item_id=item_id, analysis=analysis)
         if not analysis.get("sensitive") and str(analysis.get("risk_level", "low")) == "low":
             return self._build_default_bias_search_plan(item, item_id=item_id, analysis=analysis)
         prompt = self._build_bias_rewrite_prompt(base, item, analysis)
@@ -2349,6 +2718,8 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
             if len(cleaned) >= self.bias_query_max_n:
                 break
         if not cleaned:
+            cleaned = self._deterministic_bias_route_queries(item, analysis)
+        if not cleaned:
             return self._build_default_bias_search_plan(item, item_id=item_id, analysis=analysis, raw_output=raw)
         result_analysis = dict(analysis)
         result_analysis["sensitive"] = self._coerce_bool(obj.get("sensitive"), default=bool(analysis.get("sensitive", False)))
@@ -2372,6 +2743,11 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         answer_policy_hint = str(obj.get("answer_policy_hint", "") or "").strip().lower()
         if answer_policy_hint not in {"answer_normally", "answer_with_qualification", "avoid_group_generalization"}:
             answer_policy_hint = "answer_with_qualification" if risk_level in {"medium", "high"} else "answer_normally"
+        if risk_level in {"medium", "high"} and not any(
+            self._normalize_query_type(qo.get("type", "primary")) in {"claim_testing", "counter_evidence", "confounder_context"}
+            for qo in cleaned
+        ):
+            cleaned = self._merge_query_objects(cleaned, self._deterministic_bias_route_queries(item, result_analysis))
         return {
             "queries": [x["query"] for x in cleaned],
             "query_plan": [
@@ -2726,6 +3102,8 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         risk_level = str(sp.get("risk_level", "low") or "low")
         if risk_level not in {"medium", "high"}:
             return use_evidence, reason
+        if not self._has_non_primary_routes(sp):
+            return use_evidence, reason
         qmap = self._query_type_map(sp)
         if not self._balanced_route_ok(selected, qmap, risk_level):
             return False, "balance_gate_insufficient_route_balance"
@@ -2748,6 +3126,8 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         if risk_level == "high":
             if use_evidence and balanced:
                 return "answer_with_qualification"
+            if not self._has_non_primary_routes(search_plan):
+                return hint or "answer_with_qualification"
             return "avoid_group_generalization"
         if risk_level == "medium":
             return "answer_with_qualification"
@@ -2779,6 +3159,10 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         )
         answer_policy = self._determine_answer_policy(search_plan, selected, use_evidence)
         route_summary = trace.get("route_summary", "") or self._route_summary(selected, self._query_type_map(search_plan))
+        evidence_profile = _direct_evidence_profile(item["question"], choices, selected, search_plan=search_plan)
+        directness = str(evidence_profile.get("directness", "") or "").strip().lower()
+        if use_evidence and answer_policy == "answer_normally" and directness in {"generic_background", "background_only"}:
+            answer_policy = "answer_with_qualification"
         if use_evidence:
             if is_mcq:
                 prompt = build_bias_aware_grounded_answer_prompt(
@@ -2790,6 +3174,8 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
                         "risk_level": search_plan.get("risk_level", ""),
                         "intent_type": search_plan.get("intent_type", ""),
                         "route_summary": route_summary,
+                        "evidence_directness": evidence_profile.get("directness", ""),
+                        "choice_mentions": evidence_profile.get("choice_mentions", []),
                     },
                 )
             elif answer_mode == "honest_completion":
@@ -2820,6 +3206,7 @@ class BiasAwareSearchPipeline(GeneralSearchPipeline):
         trace["runtime_status"] = self.runtime_status()
         trace["organized_evidence"] = organized_evidence
         trace["evidence_organization"] = organization_trace
+        trace["evidence_profile"] = evidence_profile
         trace["top_selected_score"] = round(top_score, 6)
         trace["answer_policy"] = answer_policy
         if gate_reason:
