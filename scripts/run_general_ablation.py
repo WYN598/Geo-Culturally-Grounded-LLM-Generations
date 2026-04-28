@@ -299,6 +299,9 @@ def select_search_variants(
 
 
 def run(args: argparse.Namespace) -> None:
+    stage = str(getattr(args, "stage", "all") or "all").strip().lower()
+    if stage not in {"all", "prepare", "run"}:
+        raise ValueError(f"Unsupported stage: {stage}")
     base_cfg = load_yaml(args.config)
     run_root = Path(args.out_root) / (args.tag.strip() if args.tag.strip() else now_tag())
     ensure_dir(str(run_root))
@@ -328,16 +331,11 @@ def run(args: argparse.Namespace) -> None:
     base_cfg_path = run_root / "configs" / "config_base.yaml"
     write_yaml(str(base_cfg_path), cfg_run)
 
-    runs: List[Dict[str, Any]] = []
-
     vanilla_cfg = copy.deepcopy(cfg_run)
     vanilla_out = run_root / "runs" / "vanilla"
     vanilla_cfg["experiment"]["output_dir"] = str(vanilla_out)
     vanilla_cfg_path = run_root / "configs" / "config_vanilla.yaml"
     write_yaml(str(vanilla_cfg_path), vanilla_cfg)
-    if not run_is_complete(vanilla_out, "vanilla", expected_n):
-        run_cmd([sys.executable, "-m", "src.main", "--mode", "vanilla", "--config", str(vanilla_cfg_path)])
-    runs.append(summarize_run(vanilla_out, "vanilla", {"mode": "vanilla"}, expected_n))
 
     variants = select_search_variants(
         cfg_run.get("search_grounding", {}) or {},
@@ -358,7 +356,8 @@ def run(args: argparse.Namespace) -> None:
         cache_meta = build_search_cache_fingerprint(freeze_cfg)
         cache_matches, _ = cache_meta_matches(str(cache_path), cache_meta)
 
-        if retrieval_key not in frozen_for_key or args.refresh_cache or not cache_file_has_content(cache_path) or not cache_matches:
+        need_refresh = retrieval_key not in frozen_for_key or args.refresh_cache or not cache_file_has_content(cache_path) or not cache_matches
+        if stage in {"all", "prepare"} and need_refresh:
             freeze_cfg["experiment"]["output_dir"] = str(run_root / "runs" / f"{name}_freeze")
             freeze_cfg_path = run_root / "configs" / f"config_freeze_{retrieval_key}.yaml"
             write_yaml(str(freeze_cfg_path), freeze_cfg)
@@ -376,6 +375,11 @@ def run(args: argparse.Namespace) -> None:
             )
             frozen_for_key[retrieval_key] = cache_path
         else:
+            if stage == "run" and not cache_file_has_content(cache_path):
+                raise RuntimeError(
+                    f"Missing frozen cache for retrieval_key={retrieval_key}: {cache_path}. "
+                    "Run this script with --stage prepare first."
+                )
             frozen_for_key[retrieval_key] = cache_path
 
         search_cfg = copy.deepcopy(cfg_run)
@@ -387,12 +391,37 @@ def run(args: argparse.Namespace) -> None:
         search_cfg["search_grounding"]["include_candidate_details"] = False
         search_cfg_path = run_root / "configs" / f"config_{name}.yaml"
         write_yaml(str(search_cfg_path), search_cfg)
+
+    if stage == "prepare":
+        prep_summary = {
+            "stage": "prepare",
+            "run_root": str(run_root),
+            "config": str(base_cfg_path),
+            "eval_path": str(cfg_run["experiment"]["eval_path"]),
+            "model": cfg_run["llm"],
+            "cache_paths": {str(v["retrieval_key"]): str(run_root / "caches" / f"{v['retrieval_key']}.jsonl") for v in variants},
+            "variants": [str(v["name"]) for v in variants],
+        }
+        print(json.dumps(prep_summary, ensure_ascii=True, indent=2))
+        return
+
+    runs: List[Dict[str, Any]] = []
+    if not run_is_complete(vanilla_out, "vanilla", expected_n):
+        run_cmd([sys.executable, "-m", "src.main", "--mode", "vanilla", "--config", str(vanilla_cfg_path)])
+    runs.append(summarize_run(vanilla_out, "vanilla", {"mode": "vanilla"}, expected_n))
+
+    for variant in variants:
+        name = str(variant["name"])
+        params = dict(variant["params"])
+        retrieval_key = str(variant["retrieval_key"])
+        search_out = run_root / "runs" / name
+        search_cfg_path = run_root / "configs" / f"config_{name}.yaml"
         if not run_is_complete(search_out, name, expected_n):
             run_cmd([sys.executable, "-m", "src.main", "--mode", "search", "--config", str(search_cfg_path)])
         run_summary = summarize_run(search_out, name, params, expected_n)
         run_summary["description"] = str(variant.get("description", "") or "").strip()
         run_summary["retrieval_key"] = retrieval_key
-        run_summary["cache_path"] = str(frozen_for_key[retrieval_key])
+        run_summary["cache_path"] = str(run_root / "caches" / f"{retrieval_key}.jsonl")
         runs.append(run_summary)
 
     overall = {r["name"]: r["overall_accuracy"] for r in runs}
@@ -441,6 +470,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", default="configs/config_openai_general_rag.yaml")
     parser.add_argument("--out-root", default="outputs/general_ablation")
     parser.add_argument("--tag", default="")
+    parser.add_argument("--stage", default="all", choices=["all", "prepare", "run"])
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--refresh-cache", action="store_true")
     parser.add_argument("--provider", default="")
